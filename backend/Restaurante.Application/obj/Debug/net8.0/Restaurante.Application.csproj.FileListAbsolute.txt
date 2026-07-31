@@ -13,3 +13,4 @@ C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Application\obj\Debug\ne
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Application\obj\Debug\net8.0\refint\Restaurante.Application.dll
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Application\obj\Debug\net8.0\Restaurante.Application.pdb
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Application\obj\Debug\net8.0\ref\Restaurante.Application.dll
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Application\obj\Debug\net8.0\Restaurante.Application.sourcelink.json

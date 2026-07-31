@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { RestaurantService, Restaurant } from '../../../core/services/restaurant.service';
+import { SAMPLE_RESTAURANTS } from '../../../core/data/sample-restaurants';
 
 @Component({
   selector: 'app-browse-restaurants',
@@ -14,17 +15,27 @@ export class BrowseRestaurants implements OnInit {
   filteredRestaurants: Restaurant[] = [];
   searchQuery = '';
   loading = true;
+  /** true mientras se muestran los restaurantes de ejemplo (sin datos reales todavía) */
+  usingSampleData = false;
 
   constructor(private restaurantService: RestaurantService) {}
 
   ngOnInit(): void {
     this.restaurantService.getAll().subscribe({
       next: (data) => {
-        this.restaurants = data;
-        this.filteredRestaurants = data;
+        if (data.length > 0) {
+          this.restaurants = data;
+        } else {
+          this.restaurants = SAMPLE_RESTAURANTS;
+          this.usingSampleData = true;
+        }
+        this.filteredRestaurants = this.restaurants;
         this.loading = false;
       },
       error: () => {
+        this.restaurants = SAMPLE_RESTAURANTS;
+        this.filteredRestaurants = this.restaurants;
+        this.usingSampleData = true;
         this.loading = false;
       },
     });

@@ -9,3 +9,4 @@ C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Domain\obj\Debug\net8.0\
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Domain\obj\Debug\net8.0\refint\Restaurante.Domain.dll
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Domain\obj\Debug\net8.0\Restaurante.Domain.pdb
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Domain\obj\Debug\net8.0\ref\Restaurante.Domain.dll
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Domain\obj\Debug\net8.0\Restaurante.Domain.sourcelink.json

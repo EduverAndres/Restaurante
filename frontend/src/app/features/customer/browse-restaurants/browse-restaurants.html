@@ -52,23 +52,38 @@
       <p class="mt-2 text-sm text-[#737373]">Intenta con otro término de búsqueda</p>
     </div>
   } @else {
+    @if (usingSampleData) {
+      <p class="text-center text-xs text-[#a3a3a3] mb-6">
+        Mostrando restaurantes de ejemplo mientras se registran los primeros restaurantes reales.
+      </p>
+    }
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       @for (restaurant of filteredRestaurants; track restaurant.id) {
         <a [routerLink]="['/restaurant', restaurant.slug]"
-           class="group card card-hover p-6 block">
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+           class="group card card-3d img-zoom overflow-hidden block">
+          <!-- Cover image -->
+          <div class="relative w-full h-44 overflow-hidden bg-[#fff8e1]">
+            @if (restaurant.coverImageUrl) {
+              <img [src]="restaurant.coverImageUrl" [alt]="restaurant.name" class="w-full h-full object-cover">
+            } @else {
+              <div class="w-full h-full flex items-center justify-center">
+                <span class="text-5xl font-display font-bold text-[#fee2e2]">{{ restaurant.name.charAt(0) }}</span>
+              </div>
+            }
+            <!-- Logo badge over the image -->
+            <div class="absolute bottom-3 left-3 w-12 h-12 rounded-xl overflow-hidden shadow-lift border-2 border-white flex items-center justify-center"
                  [style.background]="restaurant.themeConfig?.primaryColor || '#fff8e1'">
               @if (restaurant.logoUrl) {
-                <img [src]="restaurant.logoUrl" [alt]="restaurant.name" class="w-full h-full object-cover">
+                <img [src]="restaurant.logoUrl" [alt]="restaurant.name + ' logo'" class="w-full h-full object-cover">
               } @else {
-                <span class="text-xl font-display font-bold" [style.color]="restaurant.themeConfig?.textColor || '#e11d2e'">{{ restaurant.name.charAt(0) }}</span>
+                <span class="text-lg font-display font-bold" [style.color]="restaurant.themeConfig?.textColor || '#e11d2e'">{{ restaurant.name.charAt(0) }}</span>
               }
             </div>
-            <div class="min-w-0">
-              <h3 class="text-lg font-semibold text-[#171717] group-hover:text-[#e11d2e] transition-colors">{{ restaurant.name }}</h3>
-              <p class="text-sm text-[#737373] line-clamp-2 mt-1">{{ restaurant.description }}</p>
-            </div>
+          </div>
+          <!-- Info -->
+          <div class="p-6">
+            <h3 class="text-lg font-semibold text-[#171717] group-hover:text-[#e11d2e] transition-colors">{{ restaurant.name }}</h3>
+            <p class="text-sm text-[#737373] line-clamp-2 mt-1.5 leading-relaxed">{{ restaurant.description }}</p>
           </div>
         </a>
       }

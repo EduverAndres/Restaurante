@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RestaurantService, Restaurant } from '../../core/services/restaurant.service';
+import { SAMPLE_RESTAURANTS } from '../../core/data/sample-restaurants';
 
 @Component({
   selector: 'app-landing',
@@ -10,6 +11,8 @@ import { RestaurantService, Restaurant } from '../../core/services/restaurant.se
 })
 export class Landing implements OnInit, OnDestroy {
   featuredRestaurants: Restaurant[] = [];
+  /** true mientras se muestran los restaurantes de ejemplo (sin datos reales todavía) */
+  usingSampleData = false;
   private observer?: IntersectionObserver;
 
   constructor(private restaurantService: RestaurantService) {}
@@ -17,7 +20,16 @@ export class Landing implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.restaurantService.getAll().subscribe({
       next: (restaurants) => {
-        this.featuredRestaurants = restaurants.slice(0, 6);
+        if (restaurants.length > 0) {
+          this.featuredRestaurants = restaurants.slice(0, 6);
+        } else {
+          this.featuredRestaurants = SAMPLE_RESTAURANTS.slice(0, 6);
+          this.usingSampleData = true;
+        }
+      },
+      error: () => {
+        this.featuredRestaurants = SAMPLE_RESTAURANTS.slice(0, 6);
+        this.usingSampleData = true;
       },
     });
 

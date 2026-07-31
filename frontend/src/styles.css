@@ -24,48 +24,72 @@
   --shadow-lift: 0 8px 24px rgba(23, 23, 23, 0.08);
 }
 
-/* ── Base ── */
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* ── Base ──
+   IMPORTANT: these rules live inside @layer base so they sit BELOW
+   Tailwind's utilities layer in the cascade. Tailwind v4 wraps all of its
+   utility classes (mx-auto, p-*, m-*, gap-*, etc.) inside `@layer utilities`.
+   Per the CSS Cascade Layers spec, any CSS written OUTSIDE a @layer block
+   automatically wins over ANY layered rule, regardless of source order or
+   specificity. Previously this reset was unlayered, so `* { margin: 0; padding: 0; }`
+   was silently overriding every Tailwind spacing utility in the whole app
+   (mx-auto, px-4, py-20, p-8, mt-6, gap-4, etc.) — which is why sections looked
+   left-aligned and cramped instead of centered with proper spacing. */
+@layer base {
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html {
-  scroll-behavior: smooth;
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #ffffff;
+    color: #171717;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* ── Ensure router-outlet and its children are full-width blocks ── */
+  router-outlet {
+    display: block;
+    width: 100%;
+  }
+
+  router-outlet + * {
+    display: block;
+    width: 100%;
+  }
+
+  /* ── Ensure main content area is properly laid out ── */
+  main {
+    width: 100%;
+  }
+
+  /* ── Custom Scrollbar ── */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #f1f1f1; }
+  ::-webkit-scrollbar-thumb { background: var(--color-primary-200); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-primary-300); }
+
+  /* ── Selection ── */
+  ::selection { background: var(--color-primary-200); color: var(--color-primary-900); }
+
+  /* ── Focus ring global ── */
+  *:focus-visible {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
-body {
-  font-family: var(--font-sans);
-  background-color: #ffffff;
-  color: #171717;
-  min-height: 100vh;
-  width: 100%;
-  overflow-x: hidden;
-}
-
-/* ── Ensure router-outlet and its children are full-width blocks ── */
-router-outlet {
-  display: block;
-  width: 100%;
-}
-
-router-outlet + * {
-  display: block;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* ── Ensure main content area is properly laid out ── */
-main {
-  width: 100%;
-}
-
-/* ── Custom Scrollbar ── */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #f1f1f1; }
-::-webkit-scrollbar-thumb { background: var(--color-primary-200); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-primary-300); }
-
-/* ── Selection ── */
-::selection { background: var(--color-primary-200); color: var(--color-primary-900); }
+/* ── Component classes ──
+   Wrapped in @layer components (below @layer utilities) so that, just like
+   with @layer base above, any Tailwind utility class used alongside these
+   (e.g. class="card p-6" or class="btn px-10") can still override them. This
+   keeps utility classes predictable everywhere in the app, not just on the
+   home page. */
+@layer components {
 
 /* ── Buttons (single language: rounded-full, solid colors) ── */
 .btn {
@@ -382,13 +406,6 @@ main {
   transform: scale(1.08);
 }
 
-/* ── Focus ring global ── */
-*:focus-visible {
-  outline: 2px solid var(--color-primary-600);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
 /* ── Responsive tables ── */
 @media (max-width: 640px) {
   .table-responsive {
@@ -434,3 +451,5 @@ main {
   align-items: center;
   justify-content: center;
 }
+
+} /* end @layer components */

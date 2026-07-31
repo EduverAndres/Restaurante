@@ -155,3 +155,4 @@ C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Api\obj\Debug\net8.0\ref
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Api\obj\Debug\net8.0\Restaurante.Api.pdb
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Api\obj\Debug\net8.0\Restaurante.Api.genruntimeconfig.cache
 C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Api\obj\Debug\net8.0\ref\Restaurante.Api.dll
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Api\obj\Debug\net8.0\Restaurante.Api.sourcelink.json
