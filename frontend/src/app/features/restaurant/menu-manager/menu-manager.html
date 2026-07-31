@@ -1,0 +1,151 @@
+<div class="page">
+  <h1 class="page-title mb-8">Gestión del Menú</h1>
+
+  @if (error) {
+    <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">{{ error }}</div>
+  }
+
+  @if (loading) {
+    <div class="space-y-4">
+      @for (_ of [1,2,3]; track _) { <div class="h-20 shimmer rounded-xl"></div> }
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div class="lg:col-span-1">
+        <div class="card p-5">
+          <div class="mb-4">
+            <h2 class="font-semibold text-[#171717] text-lg">Categorías</h2>
+          </div>
+
+          <div class="space-y-1">
+            @for (cat of categories; track cat.id) {
+              <div class="chip flex items-center justify-between w-full cursor-pointer transition-all duration-200"
+                [class.chip-active]="selectedCategoryId === cat.id"
+                (click)="selectCategory(cat.id)">
+                <span class="font-medium min-w-0 truncate">{{ cat.name }}</span>
+                <div class="flex gap-1 flex-shrink-0" [class.opacity-80]="selectedCategoryId === cat.id">
+                  <button (click)="startEditCategory(cat); $event.stopPropagation()" class="p-1 rounded hover:bg-black/5 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                  <button (click)="deleteCategory(cat.id); $event.stopPropagation()" class="p-1 rounded hover:bg-black/5 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <button (click)="startAddCategory()" class="btn btn-outline btn-sm w-full mt-4">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nueva categoría
+          </button>
+
+          @if (addingCategory || editingCategory) {
+            <div class="mt-4 p-4 bg-cream rounded-xl border border-primary-100 space-y-3">
+              <input [(ngModel)]="categoryForm.name" placeholder="Nombre de la categoría" class="input text-sm">
+              <input [(ngModel)]="categoryForm.description" placeholder="Descripción (opcional)" class="input text-sm">
+              <div class="flex gap-2">
+                <button (click)="saveCategory()" [disabled]="saving" class="btn btn-primary btn-sm flex-1">Guardar</button>
+                <button (click)="cancelCategory()" class="btn btn-outline btn-sm">Cancelar</button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="lg:col-span-3">
+        @if (selectedCategory) {
+          <div class="card p-6">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-xl font-semibold text-[#171717]">{{ selectedCategory.name }}</h2>
+                @if (selectedCategory.description) {
+                  <p class="text-sm text-[#737373] mt-0.5">{{ selectedCategory.description }}</p>
+                }
+              </div>
+              <button (click)="startAddItem()" class="btn btn-primary btn-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Añadir item
+              </button>
+            </div>
+
+            @if ((addingItem || editingItem)) {
+              <div class="mb-6 p-5 gradient-gold rounded-xl border border-primary-200 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="label">Nombre</label>
+                    <input [(ngModel)]="itemForm.name" placeholder="Nombre del platillo" class="input">
+                  </div>
+                  <div>
+                    <label class="label">Precio</label>
+                    <input [(ngModel)]="itemForm.price" type="number" step="0.01" min="0" class="input">
+                  </div>
+                </div>
+                <div>
+                  <label class="label">Descripción</label>
+                  <textarea [(ngModel)]="itemForm.description" rows="2" placeholder="Descripción del platillo" class="input resize-none"></textarea>
+                </div>
+                <div>
+                  <label class="label">URL de imagen</label>
+                  <input [(ngModel)]="itemForm.imageUrl" placeholder="https://..." class="input">
+                </div>
+                <div class="flex items-center gap-4">
+                  <label class="flex items-center gap-2 text-sm text-[#404040] cursor-pointer select-none">
+                    <input type="checkbox" [(ngModel)]="itemForm.isAvailable" class="h-4 w-4 rounded border-primary-300 text-primary-500 focus:ring-primary-300">
+                    Disponible
+                  </label>
+                </div>
+                <div class="flex gap-2 pt-1">
+                  <button (click)="saveItem()" [disabled]="saving" class="btn btn-primary btn-sm">Guardar item</button>
+                  <button (click)="cancelItem()" class="btn btn-outline btn-sm">Cancelar</button>
+                </div>
+              </div>
+            }
+
+            <div class="space-y-3">
+              @for (item of selectedCategory.items; track item.id) {
+                <div class="flex items-center justify-between p-4 rounded-xl bg-[#fafafa] hover:bg-[#fef2f2] transition-all border border-transparent hover:border-primary-100">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <h4 class="font-semibold text-[#171717]">{{ item.name }}</h4>
+                      @if (!item.isAvailable) {
+                        <span class="px-2 py-0.5 rounded-full text-xs bg-gray-200 text-gray-500 font-medium">No disponible</span>
+                      }
+                    </div>
+                    @if (item.description) {
+                      <p class="text-sm text-[#737373] truncate mt-0.5">{{ item.description }}</p>
+                    }
+                  </div>
+                  <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+                    <span class="font-semibold text-[#e11d2e] text-lg">${{ item.price.toFixed(2) }}</span>
+                    <button (click)="toggleAvailability(item)" class="btn btn-ghost p-2" title="Toggle disponibilidad">
+                      @if (item.isAvailable) {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                      } @else {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                      }
+                    </button>
+                    <button (click)="startEditItem(item)" class="btn btn-ghost p-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                    <button (click)="deleteItem(item.id)" class="btn btn-ghost p-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                  </div>
+                </div>
+              }
+            @empty {
+              <div class="text-center py-12">
+                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                <p class="text-[#737373]">Esta categoría no tiene items aún</p>
+                <p class="text-sm text-[#a3a3a3] mt-1">Agregá items usando el botón "Añadir item"</p>
+              </div>
+            }
+            </div>
+          </div>
+        } @else {
+          <div class="card p-16 text-center">
+            <div class="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+            </div>
+            <p class="text-[#a3a3a3]">Selecciona una categoría para ver sus items</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,105 @@
+@if (loading) {
+  <div class="animate-pulse">
+    <div class="h-64 shimmer"></div>
+    <div class="page">
+      <div class="flex gap-4 mb-8">
+        @for (_ of [1,2,3]; track _) { <div class="h-10 w-32 shimmer rounded-full"></div> }
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @for (_ of [1,2,3,4]; track _) { <div class="h-32 shimmer rounded-xl"></div> }
+      </div>
+    </div>
+  </div>
+} @else if (restaurant) {
+  <div [style.fontFamily]="'var(--restaurant-font, Inter), sans-serif'">
+    <div class="relative h-56 md:h-80 overflow-hidden gradient-hero"
+         [style.background]="restaurant.themeConfig?.primaryColor || ''">
+      @if (restaurant.coverImageUrl) {
+        <img [src]="restaurant.coverImageUrl" [alt]="restaurant.name" class="w-full h-full object-cover">
+      } @else {
+        <div class="absolute inset-0 gradient-gold opacity-70"></div>
+      }
+      <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+      <div class="absolute bottom-0 left-0 right-0 p-8 md:p-12">
+        <div class="max-w-7xl mx-auto flex items-end gap-6">
+          <div class="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden shadow-xl border-4 border-white/90 flex-shrink-0"
+               [style.background]="restaurant.themeConfig?.primaryColor || 'var(--color-primary-200)'">
+            @if (restaurant.logoUrl) {
+              <img [src]="restaurant.logoUrl" [alt]="restaurant.name" class="w-full h-full object-cover">
+            } @else {
+              <div class="w-full h-full flex items-center justify-center">
+                <span class="text-3xl md:text-5xl font-display font-bold text-white">{{ restaurant.name.charAt(0) }}</span>
+              </div>
+            }
+          </div>
+          <div class="pb-1">
+            <h1 class="text-3xl md:text-5xl font-display font-bold text-white drop-shadow-sm">{{ restaurant.name }}</h1>
+            <p class="text-white/80 text-sm md:text-base mt-2 max-w-2xl leading-relaxed">{{ restaurant.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page">
+      @if (auth.isLoggedIn() && auth.userRole() === 'customer') {
+        <div class="mb-8">
+          <a [routerLink]="['/restaurant', restaurant.slug, 'order', 'ai']"
+             class="btn btn-primary btn-lg btn-glow inline-flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            Ordenar con IA
+          </a>
+        </div>
+      }
+
+      @if (availableCategories.length > 0) {
+        <div class="flex gap-2 overflow-x-auto pb-2 mb-8 scrollbar-none">
+          @for (category of availableCategories; track category.id) {
+            <button (click)="selectedCategoryId = category.id"
+              class="chip"
+              [class.chip-active]="selectedCategoryId === category.id">
+              {{ category.name }} ({{ categoryItemCount(category) }})
+            </button>
+          }
+        </div>
+
+        @if (selectedCategory) {
+          <div class="space-y-4">
+            <h2 class="text-xl font-display font-semibold text-[#171717] flex items-center gap-2">
+              {{ selectedCategory.name }}
+              @if (selectedCategory.description) {
+                <span class="text-sm font-normal text-[#737373]">— {{ selectedCategory.description }}</span>
+              }
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              @for (item of selectedCategory.items; track item.id) {
+                @if (item.isAvailable) {
+                  <div class="card card-hover p-5 flex gap-4">
+                    @if (item.imageUrl) {
+                      <div class="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 img-zoom">
+                        <img [src]="item.imageUrl" [alt]="item.name" class="w-full h-full object-cover">
+                      </div>
+                    }
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-start justify-between gap-2">
+                        <h3 class="font-semibold text-[#171717]">{{ item.name }}</h3>
+                        <span class="text-[#e11d2e] font-bold whitespace-nowrap text-lg">${{ item.price.toFixed(2) }}</span>
+                      </div>
+                      <p class="text-sm text-[#737373] mt-1.5 line-clamp-2 leading-relaxed">{{ item.description }}</p>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+      } @else {
+        <div class="text-center py-16">
+          <div class="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+          </div>
+          <p class="text-[#737373]">Este restaurante aún no tiene items en su menú.</p>
+        </div>
+      }
+    </div>
+  </div>
+}

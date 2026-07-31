@@ -1,0 +1,83 @@
+<div class="page">
+  <h1 class="page-title mb-8">Pedidos</h1>
+
+  <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
+    @for (f of ['all', 'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled']; track f) {
+      <button (click)="filterStatus = f" class="chip" [class.chip-active]="filterStatus === f">
+        {{ f === 'all' ? 'Todos' : statusLabel(f) }}
+      </button>
+    }
+  </div>
+
+  @if (loading) {
+    <div class="space-y-4">
+      @for (_ of [1,2,3]; track _) {
+        <div class="glass-card p-6 animate-pulse space-y-3">
+          <div class="h-4 shimmer rounded w-1/4"></div>
+          <div class="h-3 shimmer rounded w-1/2"></div>
+          <div class="h-10 shimmer rounded"></div>
+        </div>
+      }
+    </div>
+  } @else if (filteredOrders.length === 0) {
+    <div class="text-center py-16">
+      <div class="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-[#737373]">No hay pedidos</h3>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      @for (order of filteredOrders; track order.id) {
+        <div class="card p-6" [class.border-2]="order.status === 'pending'" [class.border-primary-200]="order.status === 'pending'">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-[#171717]">#{{ order.id.slice(0, 8) }}</span>
+              <span class="badge {{ statusBadgeColor(order.status) }}">{{ statusLabel(order.status) }}</span>
+            </div>
+            <span class="text-xs text-gray-400 font-medium">{{ order.createdAt | date:'HH:mm' }}</span>
+          </div>
+
+          <div class="space-y-2 mb-4 bg-[#fafafa] rounded-xl p-3">
+            @for (item of order.items; track item.menuItemId) {
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-700">{{ item.name }} <span class="text-gray-400">x{{ item.quantity }}</span></span>
+                <span class="text-gray-900 font-semibold">${{ (item.unitPrice * item.quantity).toFixed(2) }}</span>
+              </div>
+            }
+          </div>
+
+          @if (order.customerNote) {
+            <div class="mb-4 p-3 rounded-xl bg-cream border border-primary-100 text-xs text-gray-600 leading-relaxed">
+              <span class="font-semibold text-primary-700">Nota:</span> {{ order.customerNote }}
+            </div>
+          }
+
+          <div class="flex items-center justify-between pt-4 border-t border-primary-100">
+            <span class="font-bold text-xl text-[#e11d2e]">${{ order.total.toFixed(2) }}</span>
+            <div class="flex gap-2">
+              @if (order.status === 'pending') {
+                <button (click)="updateStatus(order.id, 'confirmed')"
+                  class="btn btn-sm bg-blue-500 text-white hover:bg-blue-600">Confirmar</button>
+              }
+              @if (order.status === 'confirmed') {
+                <button (click)="updateStatus(order.id, 'preparing')"
+                  class="btn btn-sm bg-orange-500 text-white hover:bg-orange-600">Preparar</button>
+              }
+              @if (order.status === 'preparing') {
+                <button (click)="updateStatus(order.id, 'ready')"
+                  class="btn btn-sm bg-green-500 text-white hover:bg-green-600">Listo</button>
+              }
+              @if (order.status === 'pending' || order.status === 'confirmed') {
+                <button (click)="updateStatus(order.id, 'cancelled')"
+                  class="btn btn-outline btn-sm">Cancelar</button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

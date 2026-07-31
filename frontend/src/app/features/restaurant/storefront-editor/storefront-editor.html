@@ -1,0 +1,192 @@
+<div class="page">
+  <div class="flex items-center justify-between mb-10">
+    <div>
+      <h1 class="text-4xl font-display font-bold text-[#171717]">Personalizar Escaparate</h1>
+      <p class="mt-1.5 text-sm text-[#737373]">Configura la apariencia de tu restaurante</p>
+    </div>
+    @if (saved()) {
+      <span class="bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca] rounded-full px-4 py-2 text-sm font-medium">
+        Guardado
+      </span>
+    }
+  </div>
+
+  @if (error) {
+    <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">{{ error }}</div>
+  }
+
+  @if (loading) {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      @for (_ of [1,2]; track _) {
+        <div class="glass-card p-8 animate-pulse space-y-4">
+          <div class="h-6 bg-primary-200/50 rounded w-1/3"></div>
+          <div class="h-10 bg-primary-100/50 rounded"></div>
+          <div class="h-10 bg-primary-100/50 rounded"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div class="space-y-6">
+        <div class="card p-6">
+          <h2 class="flex items-center gap-2 text-lg font-semibold text-[#171717] mb-4">
+            <svg class="w-4 h-4 text-[#e11d2e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Información
+          </h2>
+          <div class="space-y-4">
+            <div>
+              <label class="label">Nombre del restaurante</label>
+              <input [(ngModel)]="name" class="input">
+            </div>
+            <div>
+              <label class="label">Slug (URL)</label>
+              <input [(ngModel)]="slug" class="input">
+            </div>
+            <div>
+              <label class="label">Descripción</label>
+              <textarea [(ngModel)]="description" rows="3" class="input resize-none"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <h2 class="flex items-center gap-2 text-lg font-semibold text-[#171717] mb-4">
+            <svg class="w-4 h-4 text-[#e11d2e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+            Colores
+          </h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">Primario</label>
+              <div class="flex gap-2">
+                <input type="color" [(ngModel)]="theme.primaryColor" class="w-10 h-10 rounded-lg cursor-pointer border border-[#e5e5e5] bg-white">
+                <input [(ngModel)]="theme.primaryColor" class="input min-w-0">
+              </div>
+            </div>
+            <div>
+              <label class="label">Secundario</label>
+              <div class="flex gap-2">
+                <input type="color" [(ngModel)]="theme.secondaryColor" class="w-10 h-10 rounded-lg cursor-pointer border border-[#e5e5e5] bg-white">
+                <input [(ngModel)]="theme.secondaryColor" class="input min-w-0">
+              </div>
+            </div>
+            <div>
+              <label class="label">Acento</label>
+              <div class="flex gap-2">
+                <input type="color" [(ngModel)]="theme.accentColor" class="w-10 h-10 rounded-lg cursor-pointer border border-[#e5e5e5] bg-white">
+                <input [(ngModel)]="theme.accentColor" class="input min-w-0">
+              </div>
+            </div>
+            <div>
+              <label class="label">Fondo</label>
+              <div class="flex gap-2">
+                <input type="color" [(ngModel)]="theme.backgroundColor" class="w-10 h-10 rounded-lg cursor-pointer border border-[#e5e5e5] bg-white">
+                <input [(ngModel)]="theme.backgroundColor" class="input min-w-0">
+              </div>
+            </div>
+            <div class="col-span-2">
+              <label class="label">Texto</label>
+              <div class="flex gap-2">
+                <input type="color" [(ngModel)]="theme.textColor" class="w-10 h-10 rounded-lg cursor-pointer border border-[#e5e5e5] bg-white">
+                <input [(ngModel)]="theme.textColor" class="input min-w-0">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <h2 class="flex items-center gap-2 text-lg font-semibold text-[#171717] mb-4">
+            <svg class="w-4 h-4 text-[#e11d2e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18v10H3zM3 19h18"/></svg>
+            Tipografía
+          </h2>
+          <select [(ngModel)]="theme.fontFamily" class="input">
+            <option value="Inter">Inter</option>
+            <option value="Playfair Display">Playfair Display</option>
+            <option value="Lora">Lora</option>
+            <option value="Merriweather">Merriweather</option>
+            <option value="DM Serif Display">DM Serif Display</option>
+            <option value="Cormorant Garamond">Cormorant Garamond</option>
+          </select>
+        </div>
+
+        <div class="card p-6">
+          <h2 class="flex items-center gap-2 text-lg font-semibold text-[#171717] mb-4">
+            <svg class="w-4 h-4 text-[#e11d2e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Imágenes
+          </h2>
+          <div class="space-y-4">
+            <div>
+              <label class="label">URL del logo</label>
+              <input [(ngModel)]="theme.logoUrl" placeholder="https://..." class="input">
+            </div>
+            <div>
+              <label class="label">URL de portada</label>
+              <input [(ngModel)]="theme.coverImageUrl" placeholder="https://..." class="input">
+            </div>
+          </div>
+        </div>
+
+        <button (click)="save()" [disabled]="saving"
+          class="btn btn-primary btn-lg w-full disabled:opacity-50 disabled:cursor-not-allowed">
+          @if (saving) {
+            <span class="inline-flex items-center gap-2">
+              <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              Guardando...
+            </span>
+          } @else {
+            Guardar cambios
+          }
+        </button>
+      </div>
+
+      <div>
+        <div class="card p-6 sticky top-24">
+          <h2 class="flex items-center gap-2 text-lg font-semibold text-[#171717] mb-4">
+            <svg class="w-4 h-4 text-[#e11d2e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            Vista previa
+          </h2>
+          <div class="rounded-2xl overflow-hidden border" [style.borderColor]="theme.primaryColor + '30'">
+            <div class="h-32 relative" [style.background]="theme.primaryColor">
+              @if (theme.coverImageUrl) {
+                <img [src]="theme.coverImageUrl" class="w-full h-full object-cover">
+              }
+              <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+              <div class="absolute bottom-3 left-4 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl overflow-hidden border-2 border-white/80 shadow" [style.background]="theme.secondaryColor">
+                  @if (theme.logoUrl) {
+                    <img [src]="theme.logoUrl" class="w-full h-full object-cover">
+                  } @else {
+                    <div class="w-full h-full flex items-center justify-center">
+                      <span class="text-lg font-bold" [style.color]="theme.textColor">{{ name?.charAt(0) || 'R' }}</span>
+                    </div>
+                  }
+                </div>
+                <div class="text-white">
+                  <p class="font-bold text-sm drop-shadow-sm" [style.fontFamily]="theme.fontFamily + ', serif'">{{ name || 'Tu Restaurante' }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="p-4" [style.background]="theme.backgroundColor" [style.color]="theme.textColor">
+              <p class="text-xs opacity-70 mb-3">{{ description || 'Descripción de tu restaurante' }}</p>
+              <div class="flex gap-2 mb-3">
+                <div class="px-3 py-1.5 rounded-full text-xs font-medium text-white" [style.background]="theme.primaryColor">Entradas</div>
+                <div class="px-3 py-1.5 rounded-full text-xs font-medium" [style.background]="theme.secondaryColor" [style.color]="theme.textColor">Platos fuertes</div>
+                <div class="px-3 py-1.5 rounded-full text-xs font-medium" [style.background]="theme.secondaryColor" [style.color]="theme.textColor">Postres</div>
+              </div>
+              <div class="space-y-2">
+                @for (i of [1,2,3]; track i) {
+                  <div class="flex justify-between py-2 px-3 rounded-lg" [style.background]="theme.primaryColor + '10'">
+                    <div>
+                      <p class="text-sm font-medium" [style.fontFamily]="'Inter, sans-serif'">Platillo ejemplo {{ i }}</p>
+                      <p class="text-xs opacity-60">Descripción del platillo</p>
+                    </div>
+                    <span class="text-sm font-bold" [style.color]="theme.primaryColor">${{ (i * 5 + 10).toFixed(2) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

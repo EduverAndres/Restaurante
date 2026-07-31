@@ -1,0 +1,66 @@
+import { Injectable, signal } from '@angular/core';
+import * as signalR from '@microsoft/signalr';
+import { environment } from '../../../environments/environment';
+import { Order } from './order.service';
+
+@Injectable({ providedIn: 'root' })
+export class SignalrService {
+  private hubConnection!: signalR.HubConnection;
+  isConnected = signal(false);
+
+  constructor() {
+    this.buildConnection();
+  }
+
+  private buildConnection(): void {
+    this.hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl(environment.signalrUrl, {
+        accessTokenFactory: () => localStorage.getItem('restaurante_token') || '',
+      })
+      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+      .configureLogging(signalR.LogLevel.Warning)
+      .build();
+
+    this.hubConnection.onreconnecting(() => this.isConnected.set(false));
+    this.hubConnection.onreconnected(() => this.isConnected.set(true));
+    this.hubConnection.onclose(() => this.isConnected.set(false));
+  }
+
+  async start(): Promise<void> {
+    if (this.hubConnection.state === signalR.HubConnectionState.Connected) return;
+    try {
+      await this.hubConnection.start();
+      this.isConnected.set(true);
+    } catch (err) {
+      console.error('SignalR connection error:', err);
+      setTimeout(() => this.start(), 5000);
+    }
+  }
+
+  async stop(): Promise<void> {
+    await this.hubConnection.stop();
+    this.isConnected.set(false);
+  }
+
+  onOrderUpdated(callback: (order: Order) => void): void {
+    this.hubConnection.off('OrderUpdated');
+    this.hubConnection.on('OrderUpdated', callback);
+  }
+
+  onNewOrder(callback: (order: Order) => void): void {
+    this.hubConnection.off('NewOrder');
+    this.hubConnection.on('NewOrder', callback);
+  }
+
+  async joinRestaurantGroup(restaurantId: string): Promise<void> {
+    if (this.hubConnection.state === signalR.HubConnectionState.Connected) {
+      await this.hubConnection.invoke('JoinRestaurantGroup', restaurantId);
+    }
+  }
+
+  async leaveRestaurantGroup(restaurantId: string): Promise<void> {
+    if (this.hubConnection.state === signalR.HubConnectionState.Connected) {
+      await this.hubConnection.invoke('LeaveRestaurantGroup', restaurantId);
+    }
+  }
+}

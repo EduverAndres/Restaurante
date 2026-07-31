@@ -1,0 +1,31 @@
+using Restaurante.Domain.Common;
+using Restaurante.Domain.Enums;
+
+namespace Restaurante.Domain.Entities;
+
+public class Order : BaseEntity
+{
+    public Guid CustomerId { get; set; }
+    public User Customer { get; set; } = null!;
+    public Guid RestaurantId { get; set; }
+    public Restaurant Restaurant { get; set; } = null!;
+    public OrderStatus Status { get; set; }
+    public decimal Total { get; set; }
+    public PaymentStatus PaymentStatus { get; set; }
+    public Guid? AiConversationId { get; set; }
+    public AIConversation? AiConversation { get; set; }
+    public string? Notes { get; set; }
+    public string? DeliveryAddress { get; set; }
+
+    public List<OrderItem> Items { get; set; } = new();
+    public List<OrderStatusHistory> StatusHistory { get; set; } = new();
+    public List<Payment> Payments { get; set; } = new();
+
+    public Order(Guid customerId, Guid restaurantId)
+    {
+        CustomerId = customerId;
+        RestaurantId = restaurantId;
+        Status = OrderStatus.Pending;
+        PaymentStatus = Enums.PaymentStatus.Pending;
+    }
+}

@@ -1,0 +1,17 @@
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\bin\Debug\net8.0\Restaurante.Infrastructure.deps.json
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\bin\Debug\net8.0\Restaurante.Infrastructure.dll
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\bin\Debug\net8.0\Restaurante.Infrastructure.pdb
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\bin\Debug\net8.0\Restaurante.Application.dll
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\bin\Debug\net8.0\Restaurante.Domain.dll
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\bin\Debug\net8.0\Restaurante.Application.pdb
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\bin\Debug\net8.0\Restaurante.Domain.pdb
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\Restaurante.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\Restaurante.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\Restaurante.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\Restaurante.Infrastructure.AssemblyInfo.cs
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\Restaurante.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\Restaura.DEF06F61.Up2Date
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\Restaurante.Infrastructure.dll
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\refint\Restaurante.Infrastructure.dll
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\Restaurante.Infrastructure.pdb
+C:\Users\Eduver\Desktop\restaurante\backend\Restaurante.Infrastructure\obj\Debug\net8.0\ref\Restaurante.Infrastructure.dll
