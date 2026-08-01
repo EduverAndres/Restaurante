@@ -1,0 +1,197 @@
+<div class="page">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="page-title">Mis Publicaciones</h1>
+      <p class="text-[#737373] text-sm mt-1">Publica y gestiona las comidas de tu restaurante</p>
+    </div>
+    <button (click)="startAddPost()" class="btn btn-primary btn-sm">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nueva publicación
+    </button>
+  </div>
+
+  @if (successMessage) {
+    <div class="mb-6 p-4 rounded-xl bg-green-50 border border-green-100 text-sm text-green-600 flex items-center gap-2">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      {{ successMessage }}
+    </div>
+  }
+
+  @if (error) {
+    <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">{{ error }}</div>
+  }
+
+  <!-- Post Form Modal -->
+  @if (showPostForm) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="cancelPost()"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-[#171717]">
+            {{ editingPost ? 'Editar publicación' : 'Nueva publicación' }}
+          </h2>
+          <button (click)="cancelPost()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="label">Nombre del platillo *</label>
+            <input [(ngModel)]="postForm.title" class="input" placeholder="Ej: Bandeja Paisa">
+          </div>
+          <div>
+            <label class="label">Descripción</label>
+            <textarea [(ngModel)]="postForm.description" rows="3" class="input resize-none" placeholder="Describe tu platillo..."></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">Precio *</label>
+              <input [(ngModel)]="postForm.price" type="number" step="0.01" min="0" class="input" placeholder="0.00">
+            </div>
+            <div>
+              <label class="label">Categoría</label>
+              <select [(ngModel)]="postForm.categoryId" class="input">
+                @for (cat of categories; track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="label">URL de imagen</label>
+            <input [(ngModel)]="postForm.imageUrl" class="input" placeholder="https://ejemplo.com/imagen.jpg">
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" [(ngModel)]="postForm.isPublished" id="published" class="h-4 w-4 rounded border-gray-300 text-[#e11d2e] focus:ring-[#e11d2e]">
+            <label for="published" class="text-sm text-gray-700 cursor-pointer">Publicar ahora</label>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button (click)="savePost()" [disabled]="saving || !postForm.title.trim()" class="btn btn-primary flex-1 disabled:opacity-50">
+            @if (saving) {
+              <span class="inline-flex items-center gap-2">
+                <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Guardando...
+              </span>
+            } @else {
+              {{ editingPost ? 'Actualizar' : 'Publicar' }}
+            }
+          </button>
+          <button (click)="cancelPost()" class="btn btn-outline">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="flex flex-wrap gap-2 mb-6">
+    <button (click)="setFilter('all')" class="chip" [class.chip-active]="selectedFilter === 'all'">
+      Todos ({{ posts.length }})
+    </button>
+    <button (click)="setFilter('published')" class="chip" [class.chip-active]="selectedFilter === 'published'">
+      Publicados ({{ posts.length }})
+    </button>
+    <button (click)="setFilter('unpublished')" class="chip" [class.chip-active]="selectedFilter === 'unpublished'">
+      Borradores
+    </button>
+    @for (cat of uniqueCategories; track cat) {
+      <button (click)="setFilter(cat)" class="chip" [class.chip-active]="selectedFilter === cat">
+        {{ cat }}
+      </button>
+    }
+  </div>
+
+  @if (loading) {
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      @for (_ of [1,2,3,4,5,6]; track _) {
+        <div class="card overflow-hidden animate-pulse">
+          <div class="h-48 shimmer"></div>
+          <div class="p-4 space-y-3">
+            <div class="h-4 shimmer rounded w-3/4"></div>
+            <div class="h-3 shimmer rounded w-full"></div>
+            <div class="h-6 shimmer rounded w-1/3"></div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (filteredPosts.length === 0) {
+    <div class="text-center py-16">
+      <svg class="w-20 h-20 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+      </svg>
+      <h3 class="text-lg font-semibold text-[#737373]">No hay publicaciones</h3>
+      <p class="text-sm text-[#a3a3a3] mt-1">Crea tu primera publicación para que tus clientes vean tus platillos.</p>
+      <button (click)="startAddPost()" class="btn btn-primary mt-4">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Crear publicación
+      </button>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      @for (post of filteredPosts; track post.id) {
+        <div class="card overflow-hidden group hover:shadow-lg transition-all duration-300">
+          <!-- Image -->
+          <div class="relative h-48 bg-gradient-to-br from-gray-100 to-gray-50 overflow-hidden">
+            @if (post.imageUrl) {
+              <img [src]="post.imageUrl" [alt]="post.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            } @else {
+              <div class="w-full h-full flex items-center justify-center">
+                <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+            }
+            <!-- Status badge -->
+            <div class="absolute top-3 left-3">
+              @if (post.isPublished) {
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white shadow-sm">Publicado</span>
+              } @else {
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-500 text-white shadow-sm">Borrador</span>
+              }
+            </div>
+            <!-- Price badge -->
+            <div class="absolute top-3 right-3">
+              <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/90 text-[#e11d2e] shadow-sm">${{ post.price.toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="p-4">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-[#171717] truncate">{{ post.title }}</h3>
+                <span class="text-xs text-[#a3a3a3]">{{ post.category }}</span>
+              </div>
+            </div>
+            @if (post.description) {
+              <p class="text-sm text-[#737373] line-clamp-2 mb-3">{{ post.description }}</p>
+            }
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+              <div class="flex items-center gap-1 text-[#a3a3a3]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                <span class="text-xs">{{ post.likes }}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button (click)="togglePublish(post)" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" [title]="post.isPublished ? 'Despublicar' : 'Publicar'">
+                  @if (post.isPublished) {
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                  } @else {
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                  }
+                </button>
+                <button (click)="startEditPost(post)" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Editar">
+                  <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button (click)="deletePost(post)" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Eliminar">
+                  <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

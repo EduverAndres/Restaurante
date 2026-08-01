@@ -20,6 +20,20 @@ public class OrdersController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> GetById(Guid id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetOrderByIdQuery { OrderId = id });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<OrderDto>.Fail(ex.Message));
+        }
+    }
+
     [HttpGet("customer")]
     public async Task<ActionResult<ApiResponse<List<OrderDto>>>> GetByCustomer()
     {

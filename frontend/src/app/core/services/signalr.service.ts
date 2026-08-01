@@ -63,4 +63,16 @@ export class SignalrService {
       await this.hubConnection.invoke('LeaveRestaurantGroup', restaurantId);
     }
   }
+
+  async joinOrderGroup(orderId: string): Promise<void> {
+    if (this.hubConnection.state === signalR.HubConnectionState.Connected) {
+      await this.hubConnection.invoke('JoinOrderGroup', orderId);
+    }
+  }
+
+  async leaveOrderGroup(orderId: string): Promise<void> {
+    if (this.hubConnection.state === signalR.HubConnectionState.Connected) {
+      await this.hubConnection.invoke('LeaveOrderGroup', orderId);
+    }
+  }
 }

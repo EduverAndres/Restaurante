@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { RestaurantService, Restaurant } from '../../../core/services/restaurant.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { SAMPLE_RESTAURANTS } from '../../../core/data/sample-restaurants';
 
 @Component({
@@ -18,9 +19,19 @@ export class BrowseRestaurants implements OnInit {
   /** true mientras se muestran los restaurantes de ejemplo (sin datos reales todavía) */
   usingSampleData = false;
 
-  constructor(private restaurantService: RestaurantService) {}
+  constructor(
+    private restaurantService: RestaurantService,
+    private auth: AuthService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
+    // Redirect restaurant owners to their dashboard
+    if (this.auth.isLoggedIn() && this.auth.userRole() === 'restaurant') {
+      this.router.navigate(['/restaurant/dashboard']);
+      return;
+    }
+
     this.restaurantService.getAll().subscribe({
       next: (data) => {
         if (data.length > 0) {

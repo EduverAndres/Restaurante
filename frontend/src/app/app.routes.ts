@@ -53,5 +53,15 @@ export const routes: Routes = [
     loadComponent: () => import('./features/restaurant/storefront-editor/storefront-editor').then(m => m.StorefrontEditor),
     canActivate: [roleGuard(['restaurant'])],
   },
+  {
+    path: 'restaurant/profile',
+    loadComponent: () => import('./features/restaurant/restaurant-profile/restaurant-profile').then(m => m.RestaurantProfile),
+    canActivate: [roleGuard(['restaurant'])],
+  },
+  {
+    path: 'restaurant/posts',
+    loadComponent: () => import('./features/restaurant/restaurant-posts/restaurant-posts').then(m => m.RestaurantPosts),
+    canActivate: [roleGuard(['restaurant'])],
+  },
   { path: '**', redirectTo: '' },
 ];

@@ -21,7 +21,7 @@ export class MenuManager implements OnInit {
   selectedCategoryId = '';
 
   categoryForm = { name: '', description: '' };
-  itemForm = { name: '', description: '', price: 0, imageUrl: '', isAvailable: true };
+  itemForm = { name: '', description: '', price: 0, imageUrl: '', isAvailable: true, preparationTime: 15 };
   saving = false;
   error = '';
 
@@ -31,8 +31,17 @@ export class MenuManager implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.restaurantId = this.auth.currentUser()?.id || '';
-    this.loadMenu();
+    this.restaurantService.getByOwner().subscribe({
+      next: (restaurants) => {
+        if (restaurants.length > 0) {
+          this.restaurantId = restaurants[0].id;
+          this.loadMenu();
+        } else {
+          this.loading = false;
+        }
+      },
+      error: () => (this.loading = false),
+    });
   }
 
   private loadMenu(): void {
@@ -98,19 +107,26 @@ export class MenuManager implements OnInit {
   startAddItem(): void {
     this.addingItem = true;
     this.editingItem = null;
-    this.itemForm = { name: '', description: '', price: 0, imageUrl: '', isAvailable: true };
+    this.itemForm = { name: '', description: '', price: 0, imageUrl: '', isAvailable: true, preparationTime: 15 };
   }
 
   startEditItem(item: MenuItem): void {
     this.editingItem = item;
     this.addingItem = false;
-    this.itemForm = { name: item.name, description: item.description, price: item.price, imageUrl: item.imageUrl || '', isAvailable: item.isAvailable };
+    this.itemForm = {
+      name: item.name,
+      description: item.description,
+      price: item.price,
+      imageUrl: item.images?.[0] || item.imageUrl || '',
+      isAvailable: item.isAvailable,
+      preparationTime: item.preparationTime || 15,
+    };
   }
 
   cancelItem(): void {
     this.addingItem = false;
     this.editingItem = null;
-    this.itemForm = { name: '', description: '', price: 0, imageUrl: '', isAvailable: true };
+    this.itemForm = { name: '', description: '', price: 0, imageUrl: '', isAvailable: true, preparationTime: 15 };
   }
 
   saveItem(): void {
@@ -118,13 +134,23 @@ export class MenuManager implements OnInit {
     this.saving = true;
     this.error = '';
 
+    const payload: any = {
+      name: this.itemForm.name,
+      description: this.itemForm.description,
+      price: this.itemForm.price,
+      images: this.itemForm.imageUrl ? [this.itemForm.imageUrl] : [],
+      isAvailable: this.itemForm.isAvailable,
+      categoryId: this.selectedCategoryId,
+      preparationTime: this.itemForm.preparationTime,
+    };
+
     if (this.editingItem) {
-      this.restaurantService.updateMenuItem(this.restaurantId, this.editingItem.id, this.itemForm).subscribe({
+      this.restaurantService.updateMenuItem(this.restaurantId, this.editingItem.id, payload).subscribe({
         next: () => { this.loadMenu(); this.cancelItem(); this.saving = false; },
         error: (e) => { this.error = 'Error al guardar item'; this.saving = false; },
       });
-    } else if (this.selectedCategoryId) {
-      this.restaurantService.createMenuItem(this.restaurantId, this.selectedCategoryId, this.itemForm).subscribe({
+    } else {
+      this.restaurantService.createMenuItem(this.restaurantId, payload).subscribe({
         next: () => { this.loadMenu(); this.cancelItem(); this.saving = false; },
         error: (e) => { this.error = 'Error al guardar item'; this.saving = false; },
       });
@@ -139,7 +165,7 @@ export class MenuManager implements OnInit {
   }
 
   toggleAvailability(item: MenuItem): void {
-    this.restaurantService.updateMenuItem(this.restaurantId, item.id, { isAvailable: !item.isAvailable }).subscribe({
+    this.restaurantService.updateMenuItem(this.restaurantId, item.id, { isAvailable: !item.isAvailable, categoryId: item.categoryId } as any).subscribe({
       next: () => this.loadMenu(),
     });
   }

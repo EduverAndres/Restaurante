@@ -50,8 +50,23 @@ public class RestaurantsController : ControllerBase
         }
     }
 
+    [Authorize]
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetById(Guid id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetRestaurantByIdQuery { Id = id });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<RestaurantDto>.Fail(ex.Message));
+        }
+    }
+
     [AllowAnonymous]
-    [HttpGet("{slug}")]
+    [HttpGet("slug/{slug}")]
     public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetBySlug(string slug)
     {
         try

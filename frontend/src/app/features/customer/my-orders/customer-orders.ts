@@ -20,7 +20,6 @@ export class CustomerOrders implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.loadOrders();
     this.signalr.start();
     this.signalr.onOrderUpdated((updated) => {
       const idx = this.orders.findIndex(o => o.id === updated.id);
@@ -28,10 +27,23 @@ export class CustomerOrders implements OnInit, OnDestroy {
         this.orders[idx] = updated;
       }
     });
+    this.loadOrders();
   }
 
   ngOnDestroy(): void {
+    this.leaveActiveOrderGroups();
     this.signalr.stop();
+  }
+
+  private joinActiveOrderGroups(): void {
+    const activeStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
+    this.orders
+      .filter(o => activeStatuses.includes(o.status))
+      .forEach(o => this.signalr.joinOrderGroup(o.id));
+  }
+
+  private leaveActiveOrderGroups(): void {
+    this.orders.forEach(o => this.signalr.leaveOrderGroup(o.id));
   }
 
   private loadOrders(): void {
@@ -39,6 +51,8 @@ export class CustomerOrders implements OnInit, OnDestroy {
       next: (data) => {
         this.orders = data;
         this.loading = false;
+        // Join order groups after orders are loaded
+        this.signalr.start().then(() => this.joinActiveOrderGroups());
       },
       error: () => (this.loading = false),
     });

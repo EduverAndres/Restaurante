@@ -18,11 +18,13 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IMapper _mapper;
+    private readonly IOrderNotifier _notifier;
 
-    public UpdateOrderStatusCommandHandler(IOrderRepository orderRepository, IMapper mapper)
+    public UpdateOrderStatusCommandHandler(IOrderRepository orderRepository, IMapper mapper, IOrderNotifier notifier)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
+        _notifier = notifier;
     }
 
     public async Task<ApiResponse<OrderDto>> Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken)
@@ -44,6 +46,13 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
         await _orderRepository.UpdateAsync(order);
 
         var dto = _mapper.Map<OrderDto>(order);
+
+        // Notify restaurant of status change
+        await _notifier.NotifyOrderUpdated(order.RestaurantId, dto);
+
+        // Notify customer order group of status change
+        await _notifier.NotifyOrderStatusChanged(order.Id, dto);
+
         return ApiResponse<OrderDto>.Ok(dto, $"Order status updated to {newStatus}");
     }
 }

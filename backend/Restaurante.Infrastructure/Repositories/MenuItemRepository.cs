@@ -17,6 +17,7 @@ public class MenuItemRepository : IMenuItemRepository
     public async Task<List<MenuItem>> GetByRestaurantIdAsync(Guid restaurantId)
     {
         return await _context.MenuItems
+            .Include(m => m.Category)
             .Where(m => m.RestaurantId == restaurantId)
             .OrderBy(m => m.Category.SortOrder)
             .ThenBy(m => m.Name)

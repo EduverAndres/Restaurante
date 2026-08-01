@@ -38,9 +38,13 @@ export class AuthService {
     const user = localStorage.getItem(this.userKey);
     if (token && user) {
       try {
-        const parsed = JSON.parse(user) as User;
-        this.currentUser.set(parsed);
-        this.userRole.set(parsed.role);
+        const parsed = JSON.parse(user) as any;
+        // Normalize role on load from localStorage
+        const normalizedRole = (parsed.role === 'RestaurantOwner' || parsed.role === 'restaurant') ? 'restaurant' as const : 'customer' as const;
+        const normalizedUser: User = { ...parsed, role: normalizedRole };
+        localStorage.setItem(this.userKey, JSON.stringify(normalizedUser));
+        this.currentUser.set(normalizedUser);
+        this.userRole.set(normalizedRole);
         this.isLoggedIn.set(true);
       } catch {
         this.clearStorage();
@@ -85,11 +89,17 @@ export class AuthService {
   }
 
   private handleAuthResponse(res: AuthResponse): void {
+    // Normalize role: backend returns "RestaurantOwner" or "Customer", frontend expects "restaurant" or "customer"
+    const rawRole = (res.user as any).role;
+    const normalizedUser = {
+      ...res.user,
+      role: (rawRole === 'RestaurantOwner' || rawRole === 'restaurant') ? 'restaurant' as const : 'customer' as const,
+    };
     localStorage.setItem(this.tokenKey, res.token);
     localStorage.setItem(this.refreshKey, res.refreshToken);
-    localStorage.setItem(this.userKey, JSON.stringify(res.user));
-    this.currentUser.set(res.user);
-    this.userRole.set(res.user.role);
+    localStorage.setItem(this.userKey, JSON.stringify(normalizedUser));
+    this.currentUser.set(normalizedUser);
+    this.userRole.set(normalizedUser.role);
     this.isLoggedIn.set(true);
   }
 

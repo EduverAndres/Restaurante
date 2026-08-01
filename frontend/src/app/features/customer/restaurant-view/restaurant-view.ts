@@ -1,7 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { RestaurantService, Restaurant, MenuCategory } from '../../../core/services/restaurant.service';
+import { RestaurantService, Restaurant, MenuCategory, MenuItem } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { OrderService } from '../../../core/services/order.service';
+
+export interface CartItem {
+  menuItem: MenuItem;
+  quantity: number;
+  notes: string;
+}
 
 @Component({
   selector: 'app-restaurant-view',
@@ -15,10 +22,17 @@ export class RestaurantView implements OnInit {
   selectedCategoryId: string | null = null;
   loading = true;
 
+  cart: CartItem[] = [];
+  showCart = false;
+  ordering = false;
+  orderSuccess = false;
+  orderError = '';
+
   constructor(
     private route: ActivatedRoute,
     private restaurantService: RestaurantService,
     protected auth: AuthService,
+    private orderService: OrderService,
   ) {}
 
   ngOnInit(): void {
@@ -69,5 +83,81 @@ export class RestaurantView implements OnInit {
 
   categoryItemCount(category: MenuCategory): number {
     return category.items?.filter(i => i.isAvailable).length || 0;
+  }
+
+  // ── Cart methods ──
+
+  addToCart(item: MenuItem): void {
+    const existing = this.cart.find(c => c.menuItem.id === item.id);
+    if (existing) {
+      existing.quantity++;
+    } else {
+      this.cart.push({ menuItem: item, quantity: 1, notes: '' });
+    }
+  }
+
+  removeFromCart(itemId: string): void {
+    this.cart = this.cart.filter(c => c.menuItem.id !== itemId);
+  }
+
+  incrementQuantity(itemId: string): void {
+    const item = this.cart.find(c => c.menuItem.id === itemId);
+    if (item) item.quantity++;
+  }
+
+  decrementQuantity(itemId: string): void {
+    const item = this.cart.find(c => c.menuItem.id === itemId);
+    if (item) {
+      if (item.quantity <= 1) {
+        this.removeFromCart(itemId);
+      } else {
+        item.quantity--;
+      }
+    }
+  }
+
+  getCartQuantity(itemId: string): number {
+    const item = this.cart.find(c => c.menuItem.id === itemId);
+    return item ? item.quantity : 0;
+  }
+
+  get cartTotal(): number {
+    return this.cart.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
+  }
+
+  get cartItemCount(): number {
+    return this.cart.reduce((sum, item) => sum + item.quantity, 0);
+  }
+
+  toggleCart(): void {
+    this.showCart = !this.showCart;
+  }
+
+  placeOrder(): void {
+    if (!this.restaurant || this.cart.length === 0) return;
+    this.ordering = true;
+    this.orderError = '';
+
+    const items = this.cart.map(c => ({
+      menuItemId: c.menuItem.id,
+      quantity: c.quantity,
+    }));
+
+    this.orderService.createOrder({
+      restaurantId: this.restaurant.id,
+      items,
+    }).subscribe({
+      next: () => {
+        this.orderSuccess = true;
+        this.cart = [];
+        this.showCart = false;
+        this.ordering = false;
+        setTimeout(() => (this.orderSuccess = false), 5000);
+      },
+      error: (err) => {
+        this.orderError = 'Error al crear el pedido. Intenta de nuevo.';
+        this.ordering = false;
+      },
+    });
   }
 }

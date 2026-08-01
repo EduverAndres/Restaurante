@@ -20,7 +20,22 @@ public class MenuController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<List<MenuItemDto>>>> GetAll(Guid restaurantId)
+    public async Task<ActionResult<ApiResponse<List<MenuGroupedByCategoryDto>>>> GetAll(Guid restaurantId)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetMenuGroupedByCategoryQuery { RestaurantId = restaurantId });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<List<MenuGroupedByCategoryDto>>.Fail(ex.Message));
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("items")]
+    public async Task<ActionResult<ApiResponse<List<MenuItemDto>>>> GetAllItems(Guid restaurantId)
     {
         try
         {

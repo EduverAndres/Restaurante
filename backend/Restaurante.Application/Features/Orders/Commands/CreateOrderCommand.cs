@@ -21,17 +21,20 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
     private readonly IMenuItemRepository _menuItemRepository;
     private readonly IAIService _aiService;
     private readonly IMapper _mapper;
+    private readonly IOrderNotifier _notifier;
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
         IMenuItemRepository menuItemRepository,
         IAIService aiService,
-        IMapper mapper)
+        IMapper mapper,
+        IOrderNotifier notifier)
     {
         _orderRepository = orderRepository;
         _menuItemRepository = menuItemRepository;
         _aiService = aiService;
         _mapper = mapper;
+        _notifier = notifier;
     }
 
     public async Task<ApiResponse<OrderDto>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -70,6 +73,10 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         await _orderRepository.AddAsync(order);
 
         var dto = _mapper.Map<OrderDto>(order);
+
+        // Notify restaurant of new order via SignalR
+        await _notifier.NotifyNewOrder(request.RestaurantId, dto);
+
         return ApiResponse<OrderDto>.Ok(dto, "Order created");
     }
 }

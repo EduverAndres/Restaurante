@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { OrderService, Order } from '../../../core/services/order.service';
 import { SignalrService } from '../../../core/services/signalr.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { RestaurantService } from '../../../core/services/restaurant.service';
 
 @Component({
   selector: 'app-restaurant-orders',
@@ -22,12 +23,22 @@ export class RestaurantOrders implements OnInit, OnDestroy {
     private orderService: OrderService,
     private signalr: SignalrService,
     private auth: AuthService,
+    private restaurantService: RestaurantService,
   ) {}
 
   ngOnInit(): void {
-    this.restaurantId = this.auth.currentUser()?.id || '';
-    this.loadOrders();
-    this.setupRealtime();
+    this.restaurantService.getByOwner().subscribe({
+      next: (restaurants) => {
+        if (restaurants.length > 0) {
+          this.restaurantId = restaurants[0].id;
+          this.loadOrders();
+          this.setupRealtime();
+        } else {
+          this.loading = false;
+        }
+      },
+      error: () => (this.loading = false),
+    });
   }
 
   ngOnDestroy(): void {
