@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Restaurante.Infrastructure.Data;
 
@@ -10,9 +11,11 @@ using Restaurante.Infrastructure.Data;
 namespace Restaurante.Infrastructure.Migrations
 {
     [DbContext(typeof(RestauranteDbContext))]
-    partial class RestauranteDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260801233523_AddOrderCouponAndFee")]
+    partial class AddOrderCouponAndFee
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");

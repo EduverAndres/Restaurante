@@ -105,4 +105,18 @@ public class OrdersController : ControllerBase
             return BadRequest(ApiResponse<OrderDto>.Fail(ex.Message));
         }
     }
+
+    [HttpPost("{id:guid}/apply-coupon")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> ApplyCoupon(Guid id, [FromBody] ApplyCouponDto dto)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var command = new ApplyCouponCommand
+        {
+            OrderId = id,
+            UserId = userId,
+            Code = dto.Code
+        };
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
 }

@@ -11,6 +11,7 @@ public class Payment : BaseEntity
     public string Method { get; set; }
     public PaymentStatus Status { get; set; }
     public string? TransactionId { get; set; }
+    public string? Reference { get; set; }
 
     public Payment(Guid orderId, decimal amount, string method)
     {

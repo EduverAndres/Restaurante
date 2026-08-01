@@ -1,6 +1,7 @@
 using System.Net;
 using FluentValidation;
 using Restaurante.Application.DTOs;
+using Restaurante.Application.Exceptions;
 
 namespace Restaurante.Api.Middleware;
 
@@ -20,6 +21,27 @@ public class ExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Resource not found");
+            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            var response = ApiResponse<object>.Fail(ex.Message);
+            await context.Response.WriteAsJsonAsync(response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized");
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            var response = ApiResponse<object>.Fail(ex.Message);
+            await context.Response.WriteAsJsonAsync(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation");
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            var response = ApiResponse<object>.Fail(ex.Message);
+            await context.Response.WriteAsJsonAsync(response);
         }
         catch (ValidationException ex)
         {

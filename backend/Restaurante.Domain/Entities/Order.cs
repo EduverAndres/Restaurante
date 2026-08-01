@@ -11,6 +11,10 @@ public class Order : BaseEntity
     public Restaurant Restaurant { get; set; } = null!;
     public OrderStatus Status { get; set; }
     public decimal Total { get; set; }
+    public decimal DeliveryFee { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public Guid? CouponId { get; set; }
+    public Coupon? Coupon { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
     public Guid? AiConversationId { get; set; }
     public AIConversation? AiConversation { get; set; }

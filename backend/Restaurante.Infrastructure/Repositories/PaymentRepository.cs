@@ -19,6 +19,12 @@ public class PaymentRepository : IPaymentRepository
         return await _context.Payments.FindAsync(id);
     }
 
+    public async Task<Payment?> GetByTransactionIdAsync(string transactionId)
+    {
+        return await _context.Payments
+            .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
+    }
+
     public async Task<List<Payment>> GetByOrderIdAsync(Guid orderId)
     {
         return await _context.Payments

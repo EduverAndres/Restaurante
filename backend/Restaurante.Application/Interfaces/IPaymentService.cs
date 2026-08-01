@@ -1,7 +1,11 @@
+using Restaurante.Application.DTOs;
+using Restaurante.Domain.Entities;
+
 namespace Restaurante.Application.Interfaces;
 
 public interface IPaymentService
 {
-    Task<(bool success, string transactionId)> ProcessPaymentAsync(decimal amount, string method);
-    Task<bool> RefundPaymentAsync(string transactionId);
+    Task<PaymentResult> ProcessPaymentAsync(Order order, ProcessPaymentDto dto);
+    Task<PaymentResult> RefundPaymentAsync(Payment payment);
+    Task<bool> VerifyWebhookSignatureAsync(string rawBody, string signature);
 }

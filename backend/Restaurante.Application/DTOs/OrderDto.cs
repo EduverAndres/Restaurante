@@ -3,8 +3,13 @@ namespace Restaurante.Application.DTOs;
 public class OrderDto
 {
     public Guid Id { get; set; }
+    public Guid CustomerId { get; set; }
+    public Guid RestaurantId { get; set; }
     public string Status { get; set; } = string.Empty;
     public decimal Total { get; set; }
+    public decimal DeliveryFee { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public Guid? CouponId { get; set; }
     public string PaymentStatus { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }

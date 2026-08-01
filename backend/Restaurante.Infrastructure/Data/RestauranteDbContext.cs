@@ -92,6 +92,10 @@ public class RestauranteDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Total);
             if (isPostgres) entity.Property(e => e.Total).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.DeliveryFee);
+            if (isPostgres) entity.Property(e => e.DeliveryFee).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.DiscountAmount);
+            if (isPostgres) entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
             entity.Property(e => e.PaymentStatus).HasConversion<string>().HasMaxLength(50);
 
@@ -100,6 +104,7 @@ public class RestauranteDbContext : DbContext
             entity.HasMany(e => e.Payments).WithOne(e => e.Order).HasForeignKey(e => e.OrderId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.Rider).WithMany(e => e.Orders).HasForeignKey(e => e.RiderId).OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(e => e.Review).WithOne(e => e.Order).HasForeignKey<Review>(e => e.OrderId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Coupon).WithMany().HasForeignKey(e => e.CouponId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<OrderItem>(entity =>
@@ -124,6 +129,7 @@ public class RestauranteDbContext : DbContext
             if (isPostgres) entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
             entity.Property(e => e.Method).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.Reference).HasMaxLength(200);
         });
 
         modelBuilder.Entity<AIConversation>(entity =>

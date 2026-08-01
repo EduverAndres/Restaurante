@@ -16,3 +16,5 @@ appsettings.Development.json.local
 *.user-secrets.json
 .env
 .env.local
+
+# CodeGraph index.codegraph/

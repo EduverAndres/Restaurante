@@ -16,7 +16,9 @@ public class RestaurantRepository : IRestaurantRepository
 
     public async Task<Restaurant?> GetByIdAsync(Guid id)
     {
-        return await _context.Restaurants.FindAsync(id);
+        return await _context.Restaurants
+            .Include(r => r.BusinessHours)
+            .FirstOrDefaultAsync(r => r.Id == id);
     }
 
     public async Task<Restaurant?> GetBySlugAsync(string slug)
