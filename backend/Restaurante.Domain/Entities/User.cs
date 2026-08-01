@@ -15,6 +15,9 @@ public class User : BaseEntity
     public List<Restaurant> Restaurants { get; set; } = new();
     public List<Order> Orders { get; set; } = new();
     public List<AIConversation> AiConversations { get; set; } = new();
+    public List<Rider> Riders { get; set; } = new();
+    public List<CustomerAddress> CustomerAddresses { get; set; } = new();
+    public List<Review> Reviews { get; set; } = new();
 
     public User(string email, string name, string passwordHash, UserRole role)
     {

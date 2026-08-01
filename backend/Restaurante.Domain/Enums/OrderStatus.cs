@@ -6,6 +6,8 @@ public enum OrderStatus
     Confirmed,
     Preparing,
     Ready,
+    AssignedToRider,
+    OutForDelivery,
     Delivered,
     Cancelled
 }

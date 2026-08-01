@@ -16,10 +16,18 @@ public class Order : BaseEntity
     public AIConversation? AiConversation { get; set; }
     public string? Notes { get; set; }
     public string? DeliveryAddress { get; set; }
+    public Guid? RiderId { get; set; }
+    public Rider? Rider { get; set; }
+    public DateTime? AssignedAt { get; set; }
+    public DateTime? PickedUpAt { get; set; }
+    public DateTime? DeliveredAt { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 
     public List<OrderItem> Items { get; set; } = new();
     public List<OrderStatusHistory> StatusHistory { get; set; } = new();
     public List<Payment> Payments { get; set; } = new();
+    public Review? Review { get; set; }
 
     public Order(Guid customerId, Guid restaurantId)
     {
