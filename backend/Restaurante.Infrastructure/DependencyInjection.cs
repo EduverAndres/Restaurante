@@ -33,6 +33,8 @@ public static class DependencyInjection
         services.AddScoped<IAIConversationRepository, AIConversationRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<ICouponRepository, CouponRepository>();
+        services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
+        services.AddScoped<IReviewRepository, ReviewRepository>();
 
         services.AddSingleton<RefreshTokenStore>();
         services.AddScoped<IJwtService, JwtService>();

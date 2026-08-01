@@ -38,5 +38,13 @@ public class MappingProfile : Profile
 
         CreateMap<Payment, PaymentDto>()
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
+
+        CreateMap<CustomerAddress, CustomerAddressDto>();
+
+        CreateMap<Review, ReviewDto>()
+            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer.Name));
+
+        CreateMap<Coupon, CouponDto>()
+            .ForMember(d => d.DiscountType, o => o.MapFrom(s => s.DiscountType.ToString()));
     }
 }

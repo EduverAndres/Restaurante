@@ -40,4 +40,6 @@ public class RestaurantListDto
     public string? Logo { get; set; }
     public string? CoverImage { get; set; }
     public bool IsActive { get; set; }
+    public double AverageRating { get; set; }
+    public int ReviewCount { get; set; }
 }

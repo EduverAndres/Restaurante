@@ -21,14 +21,38 @@ public class CouponRepository : ICouponRepository
 
     public async Task<Coupon?> GetByCodeAsync(string code)
     {
-        var normalized = code.Trim().ToUpperInvariant();
+        return await GetByCodeNormalizedAsync(code.Trim().ToUpperInvariant());
+    }
+
+    public async Task<Coupon?> GetByCodeNormalizedAsync(string normalizedCode)
+    {
         return await _context.Coupons
-            .FirstOrDefaultAsync(c => c.Code.ToUpper() == normalized);
+            .FirstOrDefaultAsync(c => c.Code.ToUpper() == normalizedCode);
+    }
+
+    public async Task<List<Coupon>> GetByRestaurantIdAsync(Guid restaurantId)
+    {
+        return await _context.Coupons
+            .Where(c => c.RestaurantId == restaurantId)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task AddAsync(Coupon coupon)
+    {
+        await _context.Coupons.AddAsync(coupon);
+        await _context.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Coupon coupon)
     {
         _context.Coupons.Update(coupon);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Coupon coupon)
+    {
+        _context.Coupons.Remove(coupon);
         await _context.SaveChangesAsync();
     }
 }
