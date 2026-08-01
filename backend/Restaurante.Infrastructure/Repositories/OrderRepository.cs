@@ -59,6 +59,21 @@ public class OrderRepository : IOrderRepository
             .ToListAsync();
     }
 
+    public async Task<List<Order>> GetByRiderIdAsync(Guid riderId)
+    {
+        var orders = await _context.Orders
+            .Include(o => o.Customer)
+            .Include(o => o.Restaurant)
+            .Include(o => o.Items)
+            .Where(o => o.RiderId == riderId)
+            .ToListAsync();
+
+        return orders
+            .OrderByDescending(o => o.Status == OrderStatus.AssignedToRider || o.Status == OrderStatus.OutForDelivery)
+            .ThenByDescending(o => o.CreatedAt)
+            .ToList();
+    }
+
     public async Task AddAsync(Order order)
     {
         await _context.Orders.AddAsync(order);

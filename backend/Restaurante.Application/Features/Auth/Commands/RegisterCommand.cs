@@ -35,7 +35,13 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, ApiRespon
         if (existing is not null)
             return ApiResponse<AuthResponse>.Fail("Email already registered");
 
-        var role = (request.Role == "RestaurantOwner" || request.Role == "restaurant") ? UserRole.RestaurantOwner : UserRole.Customer;
+        var role = request.Role.ToLowerInvariant() switch
+        {
+            "restaurant" or "restaurantowner" => UserRole.RestaurantOwner,
+            "delivery" or "rider" => UserRole.Delivery,
+            "admin" or "platformadmin" or "platform_admin" => UserRole.PlatformAdmin,
+            _ => UserRole.Customer
+        };
         var user = new User(request.Email, request.Name, _passwordService.Hash(request.Password), role)
         {
             Phone = request.Phone

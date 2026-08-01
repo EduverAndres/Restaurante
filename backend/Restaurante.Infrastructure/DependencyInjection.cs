@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<ICouponRepository, CouponRepository>();
         services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
         services.AddScoped<IReviewRepository, ReviewRepository>();
+        services.AddScoped<IRiderRepository, RiderRepository>();
 
         services.AddSingleton<RefreshTokenStore>();
         services.AddScoped<IJwtService, JwtService>();

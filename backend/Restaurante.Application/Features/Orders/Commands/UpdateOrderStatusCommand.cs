@@ -18,12 +18,14 @@ public class UpdateOrderStatusCommand : IRequest<ApiResponse<OrderDto>>
 public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatusCommand, ApiResponse<OrderDto>>
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IRiderRepository _riderRepository;
     private readonly IMapper _mapper;
     private readonly IOrderNotifier _notifier;
 
-    public UpdateOrderStatusCommandHandler(IOrderRepository orderRepository, IMapper mapper, IOrderNotifier notifier)
+    public UpdateOrderStatusCommandHandler(IOrderRepository orderRepository, IRiderRepository riderRepository, IMapper mapper, IOrderNotifier notifier)
     {
         _orderRepository = orderRepository;
+        _riderRepository = riderRepository;
         _mapper = mapper;
         _notifier = notifier;
     }
@@ -66,6 +68,17 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
         order.StatusHistory.Add(history);
 
         await _orderRepository.UpdateAsync(order);
+
+        if ((newStatus == OrderStatus.Delivered || newStatus == OrderStatus.Cancelled) && order.RiderId.HasValue)
+        {
+            var rider = await _riderRepository.GetByIdAsync(order.RiderId.Value);
+            if (rider is not null && rider.Status == RiderStatus.Busy)
+            {
+                rider.Status = RiderStatus.Available;
+                rider.UpdatedAt = DateTime.UtcNow;
+                await _riderRepository.UpdateAsync(rider);
+            }
+        }
 
         var dto = _mapper.Map<OrderDto>(order);
 

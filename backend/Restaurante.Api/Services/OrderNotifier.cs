@@ -28,4 +28,9 @@ public class OrderNotifier : IOrderNotifier
     {
         await _hubContext.Clients.Group($"order_{orderId}").SendAsync("OrderUpdated", order);
     }
+
+    public async Task NotifyRiderLocationUpdatedAsync(Guid orderId, double latitude, double longitude)
+    {
+        await _hubContext.Clients.Group($"order_{orderId}").SendAsync("RiderLocationUpdated", new { orderId, latitude, longitude });
+    }
 }

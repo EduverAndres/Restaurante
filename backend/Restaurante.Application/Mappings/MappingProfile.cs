@@ -12,6 +12,10 @@ public class MappingProfile : Profile
         CreateMap<User, UserDto>()
             .ForMember(d => d.Role, o => o.MapFrom(s => s.Role.ToString()));
 
+        CreateMap<Rider, RiderDto>()
+            .ForMember(d => d.VehicleType, o => o.MapFrom(s => s.VehicleType.ToString()))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
+
         CreateMap<Restaurant, RestaurantDto>();
         CreateMap<Restaurant, RestaurantListDto>();
         CreateMap<CreateRestaurantDto, Restaurant>();

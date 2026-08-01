@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,12 @@ namespace Restaurante.Api.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IValidator<AssignRiderDto> _assignRiderValidator;
 
-    public OrdersController(IMediator mediator)
+    public OrdersController(IMediator mediator, IValidator<AssignRiderDto> assignRiderValidator)
     {
         _mediator = mediator;
+        _assignRiderValidator = assignRiderValidator;
     }
 
     [HttpGet("{id:guid}")]
@@ -117,6 +120,25 @@ public class OrdersController : ControllerBase
             Code = dto.Code
         };
         var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/assign-rider")]
+    [Authorize(Roles = "RestaurantOwner,PlatformAdmin")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> AssignRider(Guid id, [FromBody] AssignRiderDto dto)
+    {
+        var validation = await _assignRiderValidator.ValidateAsync(dto);
+        if (!validation.IsValid)
+            return BadRequest(ApiResponse<OrderDto>.Fail("Validation failed",
+                validation.Errors.Select(e => e.ErrorMessage).ToList()));
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var result = await _mediator.Send(new AssignRiderCommand
+        {
+            OrderId = id,
+            RiderId = dto.RiderId,
+            ChangedBy = userId
+        });
         return Ok(result);
     }
 }
