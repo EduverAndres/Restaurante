@@ -16,25 +16,40 @@ public class StartAIConversationCommand : IRequest<ApiResponse<AIConversationDto
 public class StartAIConversationCommandHandler : IRequestHandler<StartAIConversationCommand, ApiResponse<AIConversationDto>>
 {
     private readonly IAIConversationRepository _conversationRepository;
+    private readonly IRestaurantRepository _restaurantRepository;
+    private readonly IMenuItemRepository _menuItemRepository;
     private readonly IAIService _aiService;
     private readonly IMapper _mapper;
 
     public StartAIConversationCommandHandler(
         IAIConversationRepository conversationRepository,
+        IRestaurantRepository restaurantRepository,
+        IMenuItemRepository menuItemRepository,
         IAIService aiService,
         IMapper mapper)
     {
         _conversationRepository = conversationRepository;
+        _restaurantRepository = restaurantRepository;
+        _menuItemRepository = menuItemRepository;
         _aiService = aiService;
         _mapper = mapper;
     }
 
     public async Task<ApiResponse<AIConversationDto>> Handle(StartAIConversationCommand request, CancellationToken cancellationToken)
     {
-        var summary = await _aiService.ProcessOrderConversationAsync(request.InitialMessage);
-        var conversation = new AIConversation(request.CustomerId, request.InitialMessage)
+        var restaurant = await _restaurantRepository.GetByIdAsync(request.RestaurantId);
+        if (restaurant is null)
+            return ApiResponse<AIConversationDto>.Fail("Restaurant not found");
+
+        var menuItems = await _menuItemRepository.GetByRestaurantIdAsync(request.RestaurantId);
+        var menuContext = AIResponseValidator.BuildMenuContext(menuItems);
+
+        var aiResponse = await AIResponseValidator.GetValidatedResponseAsync(
+            _aiService, request.InitialMessage, null, restaurant.Name, menuContext, menuItems);
+
+        var conversation = new AIConversation(request.CustomerId, "User: " + request.InitialMessage)
         {
-            Summary = summary,
+            Summary = aiResponse,
             RestaurantId = request.RestaurantId
         };
 

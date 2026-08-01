@@ -49,7 +49,7 @@ public class AIController : ControllerBase
             var command = new SendMessageCommand
             {
                 ConversationId = id,
-                Message = request.Message
+                Content = request.Content
             };
             var result = await _mediator.Send(command);
             return Ok(result);
@@ -98,6 +98,5 @@ public class StartConversationRequest
 
 public class SendMessageRequest
 {
-    public string Message { get; set; } = string.Empty;
-    public string? Content { get; set; }
+    public string Content { get; set; } = string.Empty;
 }
