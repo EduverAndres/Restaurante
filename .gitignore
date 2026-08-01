@@ -1,0 +1,18 @@
+# Build artifacts
+backend/**/bin/
+backend/**/obj/
+backend/Restaurante.Api/restaurante.db
+backend/Restaurante.Api/restaurante.db-shm
+backend/Restaurante.Api/restaurante.db-wal
+
+# IDE / OS
+.vs/
+.idea/
+*.user
+Thumbs.db
+
+# Secrets (never commit real credentials)
+appsettings.Development.json.local
+*.user-secrets.json
+.env
+.env.local
