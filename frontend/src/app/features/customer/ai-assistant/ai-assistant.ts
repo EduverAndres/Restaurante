@@ -2,10 +2,17 @@ import { Component, OnInit, ElementRef, ViewChild, signal } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { AiService, Message } from '../../../core/services/ai.service';
+import { AiService } from '../../../core/services/ai.service';
 import { parseMessageContent } from '../../../core/services/ai-response-validator';
 import { OrderService, CreateOrderRequest } from '../../../core/services/order.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+}
 
 @Component({
   selector: 'app-ai-assistant',
@@ -19,7 +26,7 @@ export class AiAssistant implements OnInit {
   conversationId: string | null = null;
   restaurantId: string = '';
   restaurantName: string = '';
-  messages: Message[] = [];
+  messages: ChatMessage[] = [];
   newMessage = '';
   loading = signal(false);
   orderSummary: any = null;
@@ -52,11 +59,10 @@ export class AiAssistant implements OnInit {
     this.aiService.startConversation(this.restaurantId).subscribe({
       next: (conv) => {
         this.conversationId = conv.id;
-        this.messages = conv.messages || [];
+        this.messages = this.parseHistory(conv.messages);
         if (this.messages.length === 0) {
           this.messages.push({
             id: 'welcome',
-            conversationId: conv.id,
             role: 'assistant',
             content: `¡Hola! Soy el asistente de ${this.restaurantName}. ¿Qué se te antoja hoy? Puedes decirme qué tipo de comida buscas, algún platillo en específico, o dejarme recomendarte algo.`,
             createdAt: new Date().toISOString(),
@@ -65,7 +71,7 @@ export class AiAssistant implements OnInit {
         this.loading.set(false);
         this.scrollToBottom();
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Error al iniciar la conversación';
         this.loading.set(false);
       },
@@ -76,9 +82,8 @@ export class AiAssistant implements OnInit {
     const text = this.newMessage.trim();
     if (!text || !this.conversationId || this.loading()) return;
 
-    const userMsg: Message = {
+    const userMsg: ChatMessage = {
       id: `temp-${Date.now()}`,
-      conversationId: this.conversationId,
       role: 'user',
       content: text,
       createdAt: new Date().toISOString(),
@@ -91,19 +96,13 @@ export class AiAssistant implements OnInit {
 
     this.aiService.sendMessage(this.conversationId, text).subscribe({
       next: (reply) => {
-        this.messages.push(reply);
+        this.handleAssistantResponse(reply.summary);
         this.loading.set(false);
         this.scrollToBottom();
-
-        const parsed = parseMessageContent(reply.content);
-        if (parsed) {
-          this.orderSummary = parsed;
-        }
       },
       error: () => {
         this.messages.push({
           id: `err-${Date.now()}`,
-          conversationId: this.conversationId!,
           role: 'assistant',
           content: 'Lo siento, tuve un problema. ¿Puedes intentarlo de nuevo?',
           createdAt: new Date().toISOString(),
@@ -114,22 +113,42 @@ export class AiAssistant implements OnInit {
     });
   }
 
+  private handleAssistantResponse(summary: string): void {
+    const parsed = parseMessageContent(summary);
+    if (parsed) {
+      this.orderSummary = parsed;
+      this.messages.push({
+        id: `ai-${Date.now()}`,
+        role: 'assistant',
+        content: parsed.summary,
+        createdAt: new Date().toISOString(),
+      });
+    } else {
+      this.messages.push({
+        id: `ai-${Date.now()}`,
+        role: 'assistant',
+        content: summary,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+
   confirmOrder(): void {
     if (!this.orderSummary?.items) return;
 
     const req: CreateOrderRequest = {
       restaurantId: this.restaurantId,
       items: this.orderSummary.items.map((i: any) => ({
-        menuItemId: i.id,
-        quantity: i.quantity || 1,
+        menuItemId: i.menuItemId,
+        quantity: i.quantity,
       })),
-      customerNote: this.orderSummary.note || '',
     };
 
     this.loading.set(true);
     this.orderService.createOrder(req).subscribe({
-      next: (order) => {
+      next: () => {
         this.orderPlaced = true;
+        this.orderSummary = null;
         this.loading.set(false);
       },
       error: () => {
@@ -145,6 +164,20 @@ export class AiAssistant implements OnInit {
 
   viewOrder(): void {
     this.router.navigate(['/customer/orders']);
+  }
+
+  private parseHistory(raw: string): ChatMessage[] {
+    if (!raw) return [];
+    const parts = raw.split(/\n(?=(?:User|AI): )/);
+    return parts
+      .map((part) => part.match(/^(User|AI): ([\s\S]*)$/))
+      .filter((m): m is RegExpMatchArray => m !== null)
+      .map((m, i) => ({
+        id: `hist-${i}`,
+        role: m[1] === 'User' ? 'user' : 'assistant',
+        content: m[2],
+        createdAt: new Date().toISOString(),
+      }));
   }
 
   private scrollToBottom(): void {

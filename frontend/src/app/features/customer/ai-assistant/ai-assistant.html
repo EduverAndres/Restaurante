@@ -70,16 +70,13 @@
               Resumen de tu orden
             </h3>
             <div class="space-y-2 mb-4">
-              @for (item of orderSummary.items; track item.id) {
+              @for (item of orderSummary.items; track item.menuItemId) {
                 <div class="flex justify-between text-sm py-1.5 border-b border-gray-50 last:border-0">
-                  <span class="text-gray-700">{{ item.name }} <span class="text-gray-400">x{{ item.quantity || 1 }}</span></span>
-                  <span class="font-semibold text-[#171717]">${{ (item.price * (item.quantity || 1)).toFixed(2) }}</span>
+                  <span class="text-gray-700">{{ item.name }} <span class="text-gray-400">x{{ item.quantity }}</span></span>
+                  <span class="font-semibold text-[#171717]">${{ (item.unitPrice * item.quantity).toFixed(2) }}</span>
                 </div>
               }
             </div>
-            @if (orderSummary.note) {
-              <p class="text-xs text-gray-500 mb-4 italic bg-primary-50 p-3 rounded-lg">Nota: {{ orderSummary.note }}</p>
-            }
             <div class="flex gap-3">
               <button (click)="confirmOrder()" class="btn btn-primary btn-sm flex-1">Confirmar</button>
               <button (click)="cancelOrder()" class="btn btn-outline btn-sm flex-1">Cancelar</button>

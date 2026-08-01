@@ -13,6 +13,7 @@ import { SignalrService } from '../../../core/services/signalr.service';
 export class OrderDetail implements OnInit, OnDestroy {
   order: Order | null = null;
   loading = true;
+  private orderId = '';
 
   readonly statusSteps = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'] as const;
 
@@ -23,12 +24,12 @@ export class OrderDetail implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.loadOrder(id);
-      this.signalr.start();
+    this.orderId = this.route.snapshot.paramMap.get('id') ?? '';
+    if (this.orderId) {
+      this.loadOrder(this.orderId);
+      this.signalr.start().then(() => this.signalr.joinOrderGroup(this.orderId));
       this.signalr.onOrderUpdated((updated) => {
-        if (updated.id === id) {
+        if (updated.id === this.orderId) {
           this.order = updated;
         }
       });
@@ -36,6 +37,9 @@ export class OrderDetail implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.orderId) {
+      this.signalr.leaveOrderGroup(this.orderId);
+    }
     this.signalr.stop();
   }
 
