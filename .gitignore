@@ -18,3 +18,5 @@ appsettings.Development.json.local
 .env.local
 
 # CodeGraph index.codegraph/
+
+.codegraph/
