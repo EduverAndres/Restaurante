@@ -23,7 +23,9 @@ public class RestaurantRepository : IRestaurantRepository
 
     public async Task<Restaurant?> GetBySlugAsync(string slug)
     {
-        return await _context.Restaurants.FirstOrDefaultAsync(r => r.Slug == slug);
+        return await _context.Restaurants
+            .Include(r => r.BusinessHours)
+            .FirstOrDefaultAsync(r => r.Slug == slug);
     }
 
     public async Task<List<Restaurant>> GetByOwnerIdAsync(Guid ownerId)
@@ -48,6 +50,11 @@ public class RestaurantRepository : IRestaurantRepository
     {
         _context.Restaurants.Update(restaurant);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> ExistsBySlugAsync(string slug)
+    {
+        return await _context.Restaurants.AnyAsync(r => r.Slug.ToLower() == slug.ToLower());
     }
 
     public async Task DeleteAsync(Restaurant restaurant)

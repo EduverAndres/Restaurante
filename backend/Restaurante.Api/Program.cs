@@ -62,6 +62,7 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 app.UseMiddleware<Restaurante.Api.Middleware.ExceptionMiddleware>();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowAngularApp");
 app.UseAuthentication();

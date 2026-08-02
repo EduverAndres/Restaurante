@@ -10,4 +10,5 @@ public interface IRestaurantRepository
     Task<List<Restaurant>> GetByOwnerIdAsync(Guid ownerId);
     Task AddAsync(Restaurant restaurant);
     Task UpdateAsync(Restaurant restaurant);
+    Task<bool> ExistsBySlugAsync(string slug);
 }

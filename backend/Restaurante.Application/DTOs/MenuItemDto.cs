@@ -33,3 +33,8 @@ public class UpdateMenuItemDto
     public Guid CategoryId { get; set; }
     public int PreparationTime { get; set; }
 }
+
+public class UpdateMenuItemAvailabilityDto
+{
+    public bool IsAvailable { get; set; }
+}

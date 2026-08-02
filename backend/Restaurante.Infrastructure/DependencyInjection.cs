@@ -27,6 +27,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRestaurantRepository, RestaurantRepository>();
+        services.AddScoped<IBusinessHourRepository, BusinessHourRepository>();
         services.AddScoped<IMenuItemRepository, MenuItemRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -42,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddHttpClient<IPaymentService, PaymentService>();
         services.AddHttpClient<IAIService, AIService>();
+        services.AddHttpClient<IStorageService, StorageService>();
 
         return services;
     }

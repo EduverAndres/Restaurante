@@ -26,7 +26,9 @@ public class MenuItemRepository : IMenuItemRepository
 
     public async Task<MenuItem?> GetByIdAsync(Guid id)
     {
-        return await _context.MenuItems.FindAsync(id);
+        return await _context.MenuItems
+            .Include(m => m.Category)
+            .FirstOrDefaultAsync(m => m.Id == id);
     }
 
     public async Task<List<MenuItem>> GetByCategoryAsync(Guid categoryId)

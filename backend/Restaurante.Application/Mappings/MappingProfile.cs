@@ -16,7 +16,14 @@ public class MappingProfile : Profile
             .ForMember(d => d.VehicleType, o => o.MapFrom(s => s.VehicleType.ToString()))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
 
-        CreateMap<Restaurant, RestaurantDto>();
+        CreateMap<Restaurant, RestaurantDto>()
+            .ForMember(d => d.BusinessHours, o => o.MapFrom(s => s.BusinessHours.Select(h => new BusinessHourDto
+            {
+                DayOfWeek = h.DayOfWeek,
+                OpenTime = h.OpenTime,
+                CloseTime = h.CloseTime,
+                IsClosed = h.IsClosed
+            })));
         CreateMap<Restaurant, RestaurantListDto>();
         CreateMap<CreateRestaurantDto, Restaurant>();
         CreateMap<UpdateRestaurantDto, Restaurant>();
