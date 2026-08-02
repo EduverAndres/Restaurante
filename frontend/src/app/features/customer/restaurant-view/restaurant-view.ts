@@ -36,20 +36,33 @@ export class RestaurantView implements OnInit {
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug');
-    if (slug) {
-      this.restaurantService.getBySlug(slug).subscribe({
-        next: (restaurant) => {
-          this.restaurant = restaurant;
-          this.cart.setRestaurant(restaurant);
-          this.loadMenu(restaurant.id);
-          this.applyTheme(restaurant.themeConfig);
-        },
-        error: () => (this.loading = false),
-      });
+    if (!slug) {
+      this.loading = false;
+      return;
     }
+
+    this.restaurantService.getBySlug(slug).subscribe({
+      next: (restaurant) => {
+        if (!restaurant || !restaurant.id || restaurant.id === 'undefined' || restaurant.id === 'null') {
+          this.loading = false;
+          return;
+        }
+
+        this.restaurant = restaurant;
+        this.cart.setRestaurant(restaurant);
+        this.loadMenu(restaurant.id);
+        this.applyTheme(restaurant.themeConfig);
+      },
+      error: () => (this.loading = false),
+    });
   }
 
-  private loadMenu(restaurantId: string): void {
+  private loadMenu(restaurantId: string | null | undefined): void {
+    if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
+      this.loading = false;
+      return;
+    }
+
     this.restaurantService.getMenu(restaurantId).subscribe({
       next: (categories) => {
         this.menuCategories = categories;

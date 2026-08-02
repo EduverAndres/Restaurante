@@ -2,12 +2,14 @@ using System.Reflection;
 using System.Text;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Restaurante.Api.Hubs;
 using Restaurante.Api.Services;
 using Restaurante.Application;
 using Restaurante.Application.Interfaces;
 using Restaurante.Infrastructure;
+using Restaurante.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,6 +65,29 @@ builder.Services.AddSignalR();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<RestauranteDbContext>();
+    var connectionString = builder.Configuration.GetConnectionString("SupabaseConnection");
+
+    try
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException("La cadena de conexión 'SupabaseConnection' está vacía o no se configuró.");
+
+        var canConnect = db.Database.CanConnect();
+        if (!canConnect)
+            throw new InvalidOperationException("No se pudo establecer conexión con la base de datos de Supabase.");
+
+        app.Logger.LogInformation("Conexión a la base de datos validada correctamente.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Error al validar la conexión a la base de datos. Verifica ConnectionStrings:SupabaseConnection.");
+        throw;
+    }
+}
 
 app.UseMiddleware<Restaurante.Api.Middleware.ExceptionMiddleware>();
 app.UseStaticFiles();

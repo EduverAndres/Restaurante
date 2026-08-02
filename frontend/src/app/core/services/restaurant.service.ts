@@ -137,7 +137,13 @@ export class RestaurantService {
 
   getBySlug(slug: string): Observable<Restaurant> {
     return this.http.get<any>(`${this.apiUrl}/slug/${slug}`).pipe(
-      map((res: any) => this.normalizeRestaurant(res.data || res))
+      map((res: any) => {
+        const restaurant = res.data ?? res;
+        if (!restaurant || !restaurant.id) {
+          throw new Error('Restaurant not found or invalid response.');
+        }
+        return this.normalizeRestaurant(restaurant);
+      })
     );
   }
 
