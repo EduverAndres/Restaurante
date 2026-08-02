@@ -11,6 +11,9 @@ using Restaurante.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Secretos locales por entorno (ignorados por git, nunca al repo)
+builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json.local", optional: true);
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policy =>

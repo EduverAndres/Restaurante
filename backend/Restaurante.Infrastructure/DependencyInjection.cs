@@ -12,17 +12,18 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
-        var isDev = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+        var connectionString = config.GetConnectionString("SupabaseConnection");
 
-        if (isDev)
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
+            // Fallback local sin credenciales configuradas (ej. tests o primer arranque)
             services.AddDbContext<RestauranteDbContext>(o =>
                 o.UseSqlite("Data Source=restaurante.db"));
         }
         else
         {
             services.AddDbContext<RestauranteDbContext>(o =>
-                o.UseNpgsql(config.GetConnectionString("SupabaseConnection")));
+                o.UseNpgsql(connectionString));
         }
 
         services.AddScoped<IUserRepository, UserRepository>();
