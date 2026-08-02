@@ -37,6 +37,10 @@ export interface Order {
   customerNote?: string;
   notes?: string;
   paymentStatus?: string;
+  /** Destination coordinates (not exposed by the backend OrderDto; filled
+   *  client-side from the customer's default address when available). */
+  latitude?: number | null;
+  longitude?: number | null;
   createdAt: string;
   updatedAt: string;
 }

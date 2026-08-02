@@ -89,6 +89,9 @@ export class RestaurantService {
       ...dto,
       logo: dto.logo ?? dto.logoUrl,
       coverImage: dto.coverImage ?? dto.coverImageUrl,
+      // Backfill legacy aliases so pre-Fase-4 pages keep working unchanged.
+      logoUrl: dto.logoUrl ?? dto.logo,
+      coverImageUrl: dto.coverImageUrl ?? dto.coverImage,
     };
   }
 

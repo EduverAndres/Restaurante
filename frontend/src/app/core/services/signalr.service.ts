@@ -1,7 +1,13 @@
 import { Injectable, signal } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
-import { Order } from './order.service';
+import { Order, normalizeOrder } from './order.service';
+
+export interface RiderLocation {
+  orderId: string;
+  latitude: number;
+  longitude: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SignalrService {
@@ -44,12 +50,17 @@ export class SignalrService {
 
   onOrderUpdated(callback: (order: Order) => void): void {
     this.hubConnection.off('OrderUpdated');
-    this.hubConnection.on('OrderUpdated', callback);
+    this.hubConnection.on('OrderUpdated', (raw: any) => callback(normalizeOrder(raw)));
   }
 
   onNewOrder(callback: (order: Order) => void): void {
     this.hubConnection.off('NewOrder');
-    this.hubConnection.on('NewOrder', callback);
+    this.hubConnection.on('NewOrder', (raw: any) => callback(normalizeOrder(raw)));
+  }
+
+  onRiderLocationUpdated(callback: (location: RiderLocation) => void): void {
+    this.hubConnection.off('RiderLocationUpdated');
+    this.hubConnection.on('RiderLocationUpdated', callback);
   }
 
   async joinRestaurantGroup(restaurantId: string): Promise<void> {

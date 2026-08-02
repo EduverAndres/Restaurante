@@ -11,6 +11,7 @@
             @if (auth.userRole() === 'customer') {
               <a routerLink="/browse" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Explorar</a>
               <a routerLink="/customer/orders" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Mis Pedidos</a>
+              <a routerLink="/customer/profile" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Mi perfil</a>
             }
             @if (auth.userRole() === 'restaurant') {
               <a routerLink="/restaurant/dashboard" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Dashboard</a>
@@ -74,6 +75,7 @@
           @if (auth.userRole() === 'customer') {
             <a routerLink="/browse" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Explorar</a>
             <a routerLink="/customer/orders" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Mis Pedidos</a>
+            <a routerLink="/customer/profile" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Mi perfil</a>
           }
           @if (auth.userRole() === 'restaurant') {
             <a routerLink="/restaurant/dashboard" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Dashboard</a>
