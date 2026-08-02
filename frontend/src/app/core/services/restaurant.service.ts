@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { isApiErrorEnvelope } from './api-response';
 
 export interface ThemeConfig {
   primaryColor: string;
@@ -95,6 +96,15 @@ export class RestaurantService {
     };
   }
 
+  /**
+   * Business validation failures arrive as HTTP 200 with { success: false, message, data: null }
+   * (see apiResponseInterceptor). Surface them as thrown errors so callers can read `message`.
+   */
+  private unwrap<T>(value: any): T {
+    if (isApiErrorEnvelope(value)) throw value;
+    return value as T;
+  }
+
   getAll(): Observable<Restaurant[]> {
     return this.http.get<any>(`${this.apiUrl}`).pipe(
       map((res: any) => {
@@ -127,7 +137,7 @@ export class RestaurantService {
 
   create(data: Partial<Restaurant>): Observable<Restaurant> {
     return this.http.post<any>(this.apiUrl, data).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.unwrap<Restaurant>(res.data || res))
     );
   }
 
@@ -173,5 +183,41 @@ export class RestaurantService {
 
   deleteCategory(restaurantId: string, categoryId: string): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/restaurants/${restaurantId}/categories/${categoryId}`);
+  }
+
+  /** PUT /api/restaurants/{id}/business-hours — body is `{ hours: BusinessHour[] }` (full replace, max 7 days). */
+  updateBusinessHours(id: string, hours: BusinessHour[]): Observable<Restaurant> {
+    return this.http.put<any>(`${this.apiUrl}/${id}/business-hours`, { hours }).pipe(
+      map((res: any) => this.normalizeRestaurant(this.unwrap(res.data || res)))
+    );
+  }
+
+  /** PUT /api/restaurants/{id}/delivery-settings — deliveryFee, minOrderAmount, radiusKm?, estimatedPrepTimeMinutes?. */
+  updateDeliverySettings(id: string, settings: {
+    deliveryFee: number;
+    minOrderAmount: number;
+    radiusKm?: number | null;
+    estimatedPrepTimeMinutes?: number | null;
+  }): Observable<Restaurant> {
+    return this.http.put<any>(`${this.apiUrl}/${id}/delivery-settings`, settings).pipe(
+      map((res: any) => this.normalizeRestaurant(this.unwrap(res.data || res)))
+    );
+  }
+
+  /** POST /api/restaurants/{id}/images — multipart form: field `type` = 'logo' | 'cover', field `file` = the image. */
+  uploadImage(id: string, type: 'logo' | 'cover', file: File): Observable<Restaurant> {
+    const form = new FormData();
+    form.append('type', type);
+    form.append('file', file);
+    return this.http.post<any>(`${this.apiUrl}/${id}/images`, form).pipe(
+      map((res: any) => this.normalizeRestaurant(this.unwrap(res.data || res)))
+    );
+  }
+
+  /** PATCH /api/restaurants/{restaurantId}/menu/{itemId}/availability — body is `{ isAvailable }`. */
+  updateItemAvailability(restaurantId: string, itemId: string, isAvailable: boolean): Observable<MenuItem> {
+    return this.http.patch<any>(`${environment.apiUrl}/restaurants/${restaurantId}/menu/${itemId}/availability`, { isAvailable }).pipe(
+      map((res: any) => this.unwrap<MenuItem>(res.data || res))
+    );
   }
 }

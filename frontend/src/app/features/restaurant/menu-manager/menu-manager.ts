@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { RestaurantService, MenuCategory, MenuItem } from '../../../core/services/restaurant.service';
+import { readableApiError } from '../../../core/utils/restaurant-onboarding';
 
 @Component({
   selector: 'app-menu-manager',
@@ -24,10 +26,12 @@ export class MenuManager implements OnInit {
   itemForm = { name: '', description: '', price: 0, imageUrl: '', isAvailable: true, preparationTime: 15 };
   saving = false;
   error = '';
+  togglingItemId = signal('');
 
   constructor(
     private auth: AuthService,
     private restaurantService: RestaurantService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -165,8 +169,19 @@ export class MenuManager implements OnInit {
   }
 
   toggleAvailability(item: MenuItem): void {
-    this.restaurantService.updateMenuItem(this.restaurantId, item.id, { isAvailable: !item.isAvailable, categoryId: item.categoryId } as any).subscribe({
-      next: () => this.loadMenu(),
+    if (this.togglingItemId()) return;
+    const next = !item.isAvailable;
+    this.togglingItemId.set(item.id);
+    this.restaurantService.updateItemAvailability(this.restaurantId, item.id, next).subscribe({
+      next: () => {
+        item.isAvailable = next;
+        this.togglingItemId.set('');
+        this.toast.show(next ? 'Item disponible' : 'Item agotado', 'success');
+      },
+      error: (err) => {
+        this.togglingItemId.set('');
+        this.toast.show(readableApiError(err, 'No se pudo actualizar la disponibilidad'), 'error');
+      },
     });
   }
 

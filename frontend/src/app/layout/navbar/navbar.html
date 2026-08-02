@@ -15,7 +15,7 @@
             }
             @if (auth.userRole() === 'restaurant') {
               <a routerLink="/restaurant/dashboard" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Dashboard</a>
-              <a routerLink="/restaurant/profile" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Mi Restaurante</a>
+              <a routerLink="/restaurant/settings" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Configuración</a>
               <a routerLink="/restaurant/menu" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">MenÃº</a>
               <a routerLink="/restaurant/posts" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Publicaciones</a>
               <a routerLink="/restaurant/orders" routerLinkActive="text-[#e11d2e]" class="text-sm font-medium text-gray-600 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Pedidos</a>
@@ -79,7 +79,7 @@
           }
           @if (auth.userRole() === 'restaurant') {
             <a routerLink="/restaurant/dashboard" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Dashboard</a>
-            <a routerLink="/restaurant/profile" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Mi Restaurante</a>
+            <a routerLink="/restaurant/settings" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Configuración</a>
             <a routerLink="/restaurant/menu" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">MenÃº</a>
             <a routerLink="/restaurant/posts" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Publicaciones</a>
             <a routerLink="/restaurant/orders" class="block text-sm font-medium text-gray-700 hover:text-[#e11d2e] transition-colors" (click)="closeMobileMenu()">Pedidos</a>

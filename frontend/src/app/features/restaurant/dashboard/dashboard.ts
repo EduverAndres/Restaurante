@@ -14,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class Dashboard implements OnInit {
   orders: Order[] = [];
   loading = true;
+  hasRestaurant = false;
   restaurantId = '';
 
   constructor(
@@ -26,6 +27,7 @@ export class Dashboard implements OnInit {
     this.restaurantService.getByOwner().subscribe({
       next: (restaurants) => {
         if (restaurants.length > 0) {
+          this.hasRestaurant = true;
           this.restaurantId = restaurants[0].id;
           this.loadOrders();
         } else {

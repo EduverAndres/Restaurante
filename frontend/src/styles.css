@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 @source "./app/";
 @source "./index.html";
 
@@ -272,9 +273,12 @@
   font-weight: 600;
 }
 .badge-pending { background-color: #fef3c7; color: #92400e; }
+.badge-primary { background-color: #fef2f2; color: #e11d2e; }
 .badge-confirmed { background-color: #dbeafe; color: #1e40af; }
 .badge-preparing { background-color: #ffedd5; color: #9a3412; }
 .badge-ready { background-color: #dcfce7; color: #166534; }
+.badge-assignedToRider { background-color: #f3e8ff; color: #6b21a8; }
+.badge-outForDelivery { background-color: #e0f2fe; color: #075985; }
 .badge-delivered { background-color: #d1fae5; color: #065f46; }
 .badge-cancelled { background-color: #fee2e2; color: #991b1b; }
 

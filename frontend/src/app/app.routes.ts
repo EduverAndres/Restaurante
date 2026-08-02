@@ -64,9 +64,20 @@ export const routes: Routes = [
     canActivate: [roleGuard(['restaurant'])],
   },
   {
-    path: 'restaurant/profile',
-    loadComponent: () => import('./features/restaurant/restaurant-profile/restaurant-profile').then(m => m.RestaurantProfile),
+    path: 'restaurant/onboarding',
+    loadComponent: () => import('./features/restaurant/onboarding/onboarding').then(m => m.Onboarding),
     canActivate: [roleGuard(['restaurant'])],
+  },
+  {
+    path: 'restaurant/settings',
+    loadComponent: () => import('./features/restaurant/settings/settings').then(m => m.Settings),
+    canActivate: [roleGuard(['restaurant'])],
+  },
+  {
+    // Legacy route (pre-Fase 4A) kept for backwards compatibility.
+    path: 'restaurant/profile',
+    redirectTo: 'restaurant/settings',
+    pathMatch: 'full',
   },
   {
     path: 'restaurant/posts',
