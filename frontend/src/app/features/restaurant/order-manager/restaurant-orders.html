@@ -1,23 +1,51 @@
 <div class="page">
-  <h1 class="page-title mb-8">Pedidos</h1>
+  <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <h1 class="page-title">Pedidos</h1>
+    @if (restaurants.length > 1) {
+      <select
+        class="input !w-auto"
+        [ngModel]="restaurantId"
+        (ngModelChange)="onBranchChange($event)"
+        aria-label="Seleccionar sucursal"
+      >
+        @for (r of restaurants; track r.id) {
+          <option [value]="r.id">{{ r.name }}</option>
+        }
+      </select>
+    }
+  </div>
 
   <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
-    @for (f of ['all', 'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled']; track f) {
+    @for (f of filterTabs; track f) {
       <button (click)="filterStatus = f" class="chip" [class.chip-active]="filterStatus === f">
         {{ f === 'all' ? 'Todos' : statusLabel(f) }}
       </button>
     }
   </div>
 
+  @if (error) {
+    <div class="card p-4 mb-6 border-red-200 bg-red-50 text-red-700 text-sm">{{ error }}</div>
+  }
+
   @if (loading) {
     <div class="space-y-4">
-      @for (_ of [1,2,3]; track _) {
+      @for (_ of [1, 2, 3]; track _) {
         <div class="glass-card p-6 animate-pulse space-y-3">
           <div class="h-4 shimmer rounded w-1/4"></div>
           <div class="h-3 shimmer rounded w-1/2"></div>
           <div class="h-10 shimmer rounded"></div>
         </div>
       }
+    </div>
+  } @else if (!restaurantId) {
+    <div class="text-center py-16">
+      <div class="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-[#737373]">Tu tienda todavía no está creada</h3>
+      <a routerLink="/restaurant/onboarding" class="btn btn-primary btn-sm mt-4">Configurar mi tienda</a>
     </div>
   } @else if (filteredOrders.length === 0) {
     <div class="text-center py-16">
@@ -33,18 +61,21 @@
       @for (order of filteredOrders; track order.id) {
         <div class="card p-6" [class.border-2]="order.status === 'pending'" [class.border-primary-200]="order.status === 'pending'">
           <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-bold text-[#171717]">#{{ order.id.slice(0, 8) }}</span>
-              <span class="badge {{ statusBadgeColor(order.status) }}">{{ statusLabel(order.status) }}</span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-bold text-[#171717]">#{{ shortOrderId(order.id) }}</span>
+              <span class="badge {{ statusBadgeClass(order.status) }}">{{ statusLabel(order.status) }}</span>
+              <span class="badge {{ paymentBadgeClass(order.paymentStatus) }}">{{ paymentStatusLabel(order.paymentStatus) }}</span>
             </div>
             <span class="text-xs text-gray-400 font-medium">{{ order.createdAt | date:'HH:mm' }}</span>
           </div>
 
+          <p class="text-sm text-[#737373] mb-3">{{ order.customerName }}</p>
+
           <div class="space-y-2 mb-4 bg-[#fafafa] rounded-xl p-3">
-            @for (item of order.items; track item.menuItemId) {
+            @for (item of order.items; track $index) {
               <div class="flex justify-between text-sm">
                 <span class="text-gray-700">{{ item.name }} <span class="text-gray-400">x{{ item.quantity }}</span></span>
-                <span class="text-gray-900 font-semibold">${{ (item.unitPrice * item.quantity).toFixed(2) }}</span>
+                <span class="text-gray-900 font-semibold">{{ formatMoney(item.unitPrice * item.quantity) }}</span>
               </div>
             }
           </div>
@@ -55,29 +86,60 @@
             </div>
           }
 
+          <div class="flex flex-col gap-1 text-xs text-[#a3a3a3] mb-4">
+            <div class="flex justify-between"><span>Envío</span><span>{{ formatMoney(order.deliveryFee) }}</span></div>
+            @if (order.discountAmount > 0) {
+              <div class="flex justify-between text-[#16a34a]"><span>Descuento</span><span>−{{ formatMoney(order.discountAmount) }}</span></div>
+            }
+          </div>
+
           <div class="flex items-center justify-between pt-4 border-t border-primary-100">
-            <span class="font-bold text-xl text-[#e11d2e]">${{ order.total.toFixed(2) }}</span>
-            <div class="flex gap-2">
-              @if (order.status === 'pending') {
-                <button (click)="updateStatus(order.id, 'confirmed')"
-                  class="btn btn-sm bg-blue-500 text-white hover:bg-blue-600">Confirmar</button>
+            <span class="font-bold text-xl text-[#e11d2e]">{{ formatMoney(order.total) }}</span>
+            <div class="flex gap-2 flex-wrap justify-end">
+              @if (order.status === 'assignedToRider') {
+                <button (click)="assigningOrder = order"
+                  class="btn btn-sm bg-purple-500 text-white hover:bg-purple-600">Reasignar repartidor</button>
               }
-              @if (order.status === 'confirmed') {
-                <button (click)="updateStatus(order.id, 'preparing')"
-                  class="btn btn-sm bg-orange-500 text-white hover:bg-orange-600">Preparar</button>
+              @for (action of actionsFor(order); track action) {
+                @if (action !== 'cancelled') {
+                  @if (action === 'assignedToRider') {
+                    <button (click)="assigningOrder = order"
+                      [class]="transitionButtonClass(action)">Asignar repartidor</button>
+                  } @else {
+                    <button (click)="runTransition(order, action)"
+                      [class]="transitionButtonClass(action)"
+                      [disabled]="busyOrderId === order.id">{{ transitionLabel(action) }}</button>
+                  }
+                }
               }
-              @if (order.status === 'preparing') {
-                <button (click)="updateStatus(order.id, 'ready')"
-                  class="btn btn-sm bg-green-500 text-white hover:bg-green-600">Listo</button>
-              }
-              @if (order.status === 'pending' || order.status === 'confirmed') {
-                <button (click)="updateStatus(order.id, 'cancelled')"
-                  class="btn btn-outline btn-sm">Cancelar</button>
+              @if (canCancel(order.status)) {
+                <button (click)="runTransition(order, 'cancelled')"
+                  [class]="transitionButtonClass('cancelled')"
+                  [disabled]="busyOrderId === order.id">Cancelar</button>
               }
             </div>
           </div>
         </div>
       }
+    </div>
+  }
+
+  @if (assigningOrder) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="closeAssignModal()">
+      <div class="card p-6 w-full max-w-md" (click)="$event.stopPropagation()">
+        <h2 class="text-lg font-semibold text-[#171717] mb-1">Asignar repartidor</h2>
+        <p class="text-sm text-[#737373] mb-6">
+          Pedido <span class="font-semibold text-[#171717]">#{{ shortOrderId(assigningOrder.id) }}</span>
+          {{ assigningOrder.status === 'assignedToRider' ? '— reasignación' : '' }}
+        </p>
+        <button (click)="assignNearestRider()" class="btn btn-primary w-full mb-3" [disabled]="assigning">
+          {{ assigning ? 'Buscando repartidor…' : 'Asignar el más cercano' }}
+        </button>
+        <p class="text-xs text-[#a3a3a3]">
+          Se asigna automáticamente el repartidor disponible más cercano a tu sucursal (dentro del radio de entrega).
+        </p>
+        <button (click)="closeAssignModal()" class="btn btn-ghost w-full mt-4" [disabled]="assigning">Cancelar</button>
+      </div>
     </div>
   }
 </div>

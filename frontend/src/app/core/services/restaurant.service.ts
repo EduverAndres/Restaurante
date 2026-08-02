@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { isApiErrorEnvelope } from './api-response';
+import { Order, normalizeOrder } from './order.service';
 
 export interface ThemeConfig {
   primaryColor: string;
@@ -72,6 +73,26 @@ export interface MenuItem {
   isAvailable: boolean;
   displayOrder: number;
   preparationTime?: number;
+}
+
+export interface TopProduct {
+  menuItemId: string;
+  name: string;
+  quantity: number;
+  revenue: number;
+}
+
+/** DTO for GET /api/restaurants/{id}/dashboard (GetRestaurantDashboardQuery). */
+export interface RestaurantDashboard {
+  salesToday: number;
+  salesThisWeek: number;
+  salesThisMonth: number;
+  orderCountsByStatus: Record<string, number>;
+  topProducts: TopProduct[];
+  averagePrepTimeMinutes: number | null;
+  recentOrders: Order[];
+  totalOrders: number;
+  totalRevenue: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -218,6 +239,19 @@ export class RestaurantService {
   updateItemAvailability(restaurantId: string, itemId: string, isAvailable: boolean): Observable<MenuItem> {
     return this.http.patch<any>(`${environment.apiUrl}/restaurants/${restaurantId}/menu/${itemId}/availability`, { isAvailable }).pipe(
       map((res: any) => this.unwrap<MenuItem>(res.data || res))
+    );
+  }
+
+  /** GET /api/restaurants/{id}/dashboard — metrics for the owner's dashboard (RestaurantOwner). */
+  getDashboard(restaurantId: string): Observable<RestaurantDashboard> {
+    return this.http.get<any>(`${this.apiUrl}/${restaurantId}/dashboard`).pipe(
+      map((res: any) => {
+        const data = res.data || res;
+        return {
+          ...data,
+          recentOrders: Array.isArray(data.recentOrders) ? (data.recentOrders as any[]).map((o: any) => normalizeOrder(o)) : [],
+        } as RestaurantDashboard;
+      })
     );
   }
 }

@@ -78,6 +78,12 @@ export function normalizeOrder(order: any): Order {
     ...order,
     status: normalizeOrderStatus(order.status),
     customerNote: order.customerNote ?? order.notes,
+    items: (order.items ?? []).map((item: any) => ({
+      ...item,
+      // Backend OrderItemDto serializes the name as `menuItemName`; keep `name` populated
+      // so templates can rely on one field regardless of the API shape.
+      name: item.name ?? item.menuItemName,
+    })),
   };
 }
 
@@ -125,6 +131,17 @@ export class OrderService {
 
   updateStatus(orderId: string, status: string): Observable<Order> {
     return this.http.put<any>(`${this.apiUrl}/${orderId}/status`, { status }).pipe(
+      map((res: any) => normalizeOrder(res.data || res))
+    );
+  }
+
+  /**
+   * POST /api/orders/{id}/assign-rider — `{}` picks the nearest available rider
+   * (backend auto-assign by restaurant proximity within radiusKm); pass `riderId`
+   * for manual assignment (no rider-list endpoint exists, so the UI only uses auto).
+   */
+  assignRider(orderId: string, riderId?: string): Observable<Order> {
+    return this.http.post<any>(`${this.apiUrl}/${orderId}/assign-rider`, riderId ? { riderId } : {}).pipe(
       map((res: any) => normalizeOrder(res.data || res))
     );
   }

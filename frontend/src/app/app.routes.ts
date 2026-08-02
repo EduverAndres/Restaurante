@@ -59,6 +59,11 @@ export const routes: Routes = [
     canActivate: [roleGuard(['restaurant'])],
   },
   {
+    path: 'restaurant/coupons',
+    loadComponent: () => import('./features/restaurant/coupons/coupons').then(m => m.Coupons),
+    canActivate: [roleGuard(['restaurant'])],
+  },
+  {
     path: 'restaurant/storefront',
     loadComponent: () => import('./features/restaurant/storefront-editor/storefront-editor').then(m => m.StorefrontEditor),
     canActivate: [roleGuard(['restaurant'])],

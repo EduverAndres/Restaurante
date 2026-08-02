@@ -1,34 +1,65 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { OrderService, Order } from '../../../core/services/order.service';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { OrderService, Order, OrderStatus } from '../../../core/services/order.service';
 import { SignalrService } from '../../../core/services/signalr.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { RestaurantService } from '../../../core/services/restaurant.service';
+import { RestaurantService, Restaurant } from '../../../core/services/restaurant.service';
+import { ToastService } from '../../../core/services/toast.service';
+import {
+  ORDER_STATUS_ORDER,
+  canCancel,
+  formatMoney,
+  nextTransitions,
+  paymentBadgeClass,
+  paymentStatusLabel,
+  shortOrderId,
+  statusBadgeClass,
+  statusLabel,
+  transitionButtonClass,
+  transitionLabel,
+} from '../../../core/utils/restaurant-dashboard';
+import { readableApiError } from '../../../core/utils/restaurant-onboarding';
 
 @Component({
   selector: 'app-restaurant-orders',
-  imports: [DatePipe],
+  imports: [DatePipe, FormsModule, RouterLink],
   templateUrl: './restaurant-orders.html',
   styleUrl: './restaurant-orders.css',
 })
 export class RestaurantOrders implements OnInit, OnDestroy {
   orders: Order[] = [];
   loading = true;
+  restaurants: Restaurant[] = [];
   restaurantId = '';
   filterStatus = 'all';
+  error = '';
+
+  /** Order waiting for rider assignment (modal). */
+  assigningOrder: Order | null = null;
+  assigning = false;
+
+  /** Order currently executing a transition (button disabled state). */
+  busyOrderId = '';
 
   newOrderSound = new Audio('/assets/notification.wav');
 
   constructor(
+    private route: ActivatedRoute,
     private orderService: OrderService,
     private signalr: SignalrService,
-    private auth: AuthService,
     private restaurantService: RestaurantService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit(): void {
+    const param = this.route.snapshot.queryParamMap.get('status');
+    if (param && ORDER_STATUS_ORDER.includes(param as OrderStatus)) {
+      this.filterStatus = param;
+    }
     this.restaurantService.getByOwner().subscribe({
       next: (restaurants) => {
+        this.restaurants = restaurants;
         if (restaurants.length > 0) {
           this.restaurantId = restaurants[0].id;
           this.loadOrders();
@@ -37,7 +68,10 @@ export class RestaurantOrders implements OnInit, OnDestroy {
           this.loading = false;
         }
       },
-      error: () => (this.loading = false),
+      error: (e) => {
+        this.error = readableApiError(e, 'No se pudieron cargar tus restaurantes');
+        this.loading = false;
+      },
     });
   }
 
@@ -45,17 +79,34 @@ export class RestaurantOrders implements OnInit, OnDestroy {
     if (this.restaurantId) {
       this.signalr.leaveRestaurantGroup(this.restaurantId);
     }
-    this.signalr.stop();
+  }
+
+  onBranchChange(id: string): void {
+    const previous = this.restaurantId;
+    this.restaurantId = id;
+    if (previous !== this.restaurantId) {
+      this.orders = [];
+      this.error = '';
+      this.signalr.leaveRestaurantGroup(previous);
+      this.loadOrders();
+      this.signalr.start().then(() => {
+        if (this.restaurantId) this.signalr.joinRestaurantGroup(this.restaurantId);
+      });
+    }
   }
 
   private loadOrders(): void {
     if (!this.restaurantId) return;
+    this.loading = true;
     this.orderService.getRestaurantOrders(this.restaurantId).subscribe({
       next: (data) => {
         this.orders = data;
         this.loading = false;
       },
-      error: () => (this.loading = false),
+      error: (e) => {
+        this.error = readableApiError(e, 'No se pudieron cargar los pedidos');
+        this.loading = false;
+      },
     });
   }
 
@@ -69,12 +120,15 @@ export class RestaurantOrders implements OnInit, OnDestroy {
     this.signalr.onNewOrder((order) => {
       this.orders.unshift(order);
       this.playNotification();
+      this.toast.show(`¡Nuevo pedido #${shortOrderId(order.id)}!`, 'success', 6000);
     });
 
     this.signalr.onOrderUpdated((updated) => {
       const idx = this.orders.findIndex(o => o.id === updated.id);
       if (idx >= 0) {
         this.orders[idx] = updated;
+      } else if (updated.restaurantId === this.restaurantId) {
+        this.orders.unshift(updated);
       }
     });
   }
@@ -85,8 +139,55 @@ export class RestaurantOrders implements OnInit, OnDestroy {
     } catch {}
   }
 
-  updateStatus(orderId: string, status: string): void {
-    this.orderService.updateStatus(orderId, status).subscribe();
+  /** Transition buttons for the current status (empty for terminal statuses). */
+  actionsFor(order: Order): OrderStatus[] {
+    return nextTransitions(order.status);
+  }
+
+  runTransition(order: Order, status: OrderStatus): void {
+    if (status === 'assignedToRider') {
+      this.assigningOrder = order;
+      return;
+    }
+    if (status === 'cancelled' && !confirm('¿Cancelar este pedido?')) return;
+
+    this.busyOrderId = order.id;
+    this.orderService.updateStatus(order.id, status).subscribe({
+      next: (updated) => {
+        const idx = this.orders.findIndex(o => o.id === updated.id);
+        if (idx >= 0) this.orders[idx] = updated;
+        this.toast.show(`Pedido #${shortOrderId(order.id)}: ${statusLabel(status).toLowerCase()}`, 'success');
+        this.busyOrderId = '';
+      },
+      error: (e) => {
+        this.toast.show(readableApiError(e, 'No se pudo actualizar el pedido'), 'error');
+        this.busyOrderId = '';
+      },
+    });
+  }
+
+  assignNearestRider(): void {
+    if (!this.assigningOrder) return;
+    const order = this.assigningOrder;
+    this.assigning = true;
+    this.orderService.assignRider(order.id).subscribe({
+      next: (updated) => {
+        const idx = this.orders.findIndex(o => o.id === updated.id);
+        if (idx >= 0) this.orders[idx] = updated;
+        this.toast.show(`Repartidor asignado al pedido #${shortOrderId(order.id)}`, 'success');
+        this.assigningOrder = null;
+        this.assigning = false;
+      },
+      error: (e) => {
+        this.toast.show(readableApiError(e, 'No se pudo asignar un repartidor'), 'error');
+        this.assigning = false;
+      },
+    });
+  }
+
+  closeAssignModal(): void {
+    if (this.assigning) return;
+    this.assigningOrder = null;
   }
 
   get filteredOrders(): Order[] {
@@ -94,32 +195,14 @@ export class RestaurantOrders implements OnInit, OnDestroy {
     return this.orders.filter(o => o.status === this.filterStatus);
   }
 
-  statusLabel(status: string): string {
-    const map: Record<string, string> = {
-      pending: 'Pendiente', confirmed: 'Confirmado', preparing: 'Preparando',
-      ready: 'Listo', delivered: 'Entregado', cancelled: 'Cancelado',
-    };
-    return map[status] || status;
-  }
-
-  statusBadgeColor(status: string): string {
-    const map: Record<string, string> = {
-      pending: 'bg-amber-100 text-amber-700',
-      confirmed: 'bg-blue-100 text-blue-700',
-      preparing: 'bg-orange-100 text-orange-700',
-      ready: 'bg-green-100 text-green-700',
-      delivered: 'bg-gray-100 text-gray-500',
-      cancelled: 'bg-red-100 text-red-700',
-    };
-    return map[status] || 'bg-gray-100 text-gray-600';
-  }
-
-  statusButtonColor(status: string): string {
-    const map: Record<string, string> = {
-      confirmed: 'bg-blue-500 hover:bg-blue-600',
-      preparing: 'bg-orange-500 hover:bg-orange-600',
-      ready: 'bg-green-500 hover:bg-green-600',
-    };
-    return map[status] || 'bg-gray-400';
-  }
+  protected readonly statusLabel = statusLabel;
+  protected readonly statusBadgeClass = statusBadgeClass;
+  protected readonly transitionButtonClass = transitionButtonClass;
+  protected readonly transitionLabel = transitionLabel;
+  protected readonly paymentStatusLabel = paymentStatusLabel;
+  protected readonly paymentBadgeClass = paymentBadgeClass;
+  protected readonly formatMoney = formatMoney;
+  protected readonly canCancel = canCancel;
+  protected readonly shortOrderId = shortOrderId;
+  protected readonly filterTabs = ['all', ...ORDER_STATUS_ORDER];
 }
