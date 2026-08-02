@@ -14,17 +14,40 @@ export interface ThemeConfig {
   coverImageUrl?: string;
 }
 
+export interface BusinessHour {
+  dayOfWeek: number; // 0 = Sunday
+  openTime: string; // "HH:mm:ss"
+  closeTime: string;
+  isClosed: boolean;
+}
+
 export interface Restaurant {
   id: string;
   name: string;
   slug: string;
   description: string;
+  /** Backend field: `logo` (RestaurantDto). Legacy alias `logoUrl` kept for restaurant pages (Fase 4). */
+  logo?: string;
+  /** Backend field: `coverImage` (RestaurantDto). Legacy alias `coverImageUrl` kept for restaurant pages (Fase 4). */
+  coverImage?: string;
+  /** @deprecated Legacy alias — the backend returns `logo`. */
   logoUrl?: string;
+  /** @deprecated Legacy alias — the backend returns `coverImage`. */
   coverImageUrl?: string;
   themeConfig: ThemeConfig;
   isActive: boolean;
   ownerId: string;
   createdAt: string;
+  phone?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
+  deliveryFee?: number;
+  minOrderAmount?: number;
+  estimatedPrepTimeMinutes?: number;
+  averageRating?: number;
+  reviewCount?: number;
+  businessHours?: BusinessHour[];
 }
 
 export interface MenuCategory {
@@ -56,27 +79,46 @@ export class RestaurantService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * Backend RestaurantDto exposes `logo`/`coverImage`; older frontend code reads
+   * `logoUrl`/`coverImageUrl`. Normalize once here so both shapes work and the
+   * canonical fields (`logo`/`coverImage`) always carry the value.
+   */
+  private normalizeRestaurant(dto: any): Restaurant {
+    return {
+      ...dto,
+      logo: dto.logo ?? dto.logoUrl,
+      coverImage: dto.coverImage ?? dto.coverImageUrl,
+    };
+  }
+
   getAll(): Observable<Restaurant[]> {
     return this.http.get<any>(`${this.apiUrl}`).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => {
+        const list = res.data || res;
+        return Array.isArray(list) ? list.map(r => this.normalizeRestaurant(r)) : list;
+      })
     );
   }
 
   getBySlug(slug: string): Observable<Restaurant> {
     return this.http.get<any>(`${this.apiUrl}/slug/${slug}`).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.normalizeRestaurant(res.data || res))
     );
   }
 
   getByOwner(): Observable<Restaurant[]> {
     return this.http.get<any>(`${this.apiUrl}/owner`).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => {
+        const list = res.data || res;
+        return Array.isArray(list) ? list.map(r => this.normalizeRestaurant(r)) : list;
+      })
     );
   }
 
   getById(id: string): Observable<Restaurant> {
     return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.normalizeRestaurant(res.data || res))
     );
   }
 

@@ -24,6 +24,14 @@
       </div>
 
       <div class="hidden md:flex items-center gap-4">
+        @if (auth.isLoggedIn() && auth.userRole() === 'customer') {
+          <button (click)="openCart()" class="relative p-2 rounded-full text-gray-600 hover:text-[#e11d2e] hover:bg-gray-50 transition-colors" aria-label="Abrir carrito">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+            @if (cart.count() > 0) {
+              <span class="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 rounded-full bg-[#e11d2e] text-white text-[11px] font-bold flex items-center justify-center">{{ cart.count() }}</span>
+            }
+          </button>
+        }
         @if (auth.isLoggedIn()) {
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-[#fef2f2] flex items-center justify-center">
@@ -38,6 +46,14 @@
         }
       </div>
 
+      @if (auth.isLoggedIn() && auth.userRole() === 'customer') {
+        <button (click)="openCart()" class="md:hidden relative p-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors" aria-label="Abrir carrito">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+          @if (cart.count() > 0) {
+            <span class="absolute top-1 right-1 min-w-4 h-4 px-0.5 rounded-full bg-[#e11d2e] text-white text-[10px] font-bold flex items-center justify-center">{{ cart.count() }}</span>
+          }
+        </button>
+      }
       <button (click)="toggleMobileMenu()" class="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors" [attr.aria-label]="isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           @if (isMobileMenuOpen) {
@@ -83,3 +99,5 @@
     </div>
   }
 </nav>
+
+<app-cart-drawer [open]="isCartOpen" (closed)="isCartOpen = false" />

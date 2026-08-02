@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -15,7 +15,7 @@ export class Login {
   error = '';
   loading = false;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
 
   onSubmit(): void {
     if (!this.email || !this.password) {
@@ -32,7 +32,8 @@ export class Login {
         if (res.user.role === 'restaurant') {
           this.router.navigate(['/restaurant/dashboard']);
         } else {
-          this.router.navigate(['/browse']);
+          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+          this.router.navigateByUrl(returnUrl || '/browse');
         }
       },
       error: (err) => {

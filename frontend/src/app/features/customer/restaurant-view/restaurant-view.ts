@@ -1,18 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { RestaurantService, Restaurant, MenuCategory, MenuItem } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { OrderService } from '../../../core/services/order.service';
+import { CartService } from '../../../core/services/cart.service';
+import { CartDrawer } from '../../../core/components/cart-drawer/cart-drawer';
 
-export interface CartItem {
-  menuItem: MenuItem;
+interface ItemFormState {
+  item: MenuItem;
   quantity: number;
   notes: string;
 }
 
 @Component({
   selector: 'app-restaurant-view',
-  imports: [RouterLink],
+  imports: [RouterLink, CartDrawer, FormsModule],
   templateUrl: './restaurant-view.html',
   styleUrl: './restaurant-view.css',
 })
@@ -22,17 +24,14 @@ export class RestaurantView implements OnInit {
   selectedCategoryId: string | null = null;
   loading = true;
 
-  cart: CartItem[] = [];
   showCart = false;
-  ordering = false;
-  orderSuccess = false;
-  orderError = '';
+  itemForm: ItemFormState | null = null;
 
   constructor(
     private route: ActivatedRoute,
     private restaurantService: RestaurantService,
     protected auth: AuthService,
-    private orderService: OrderService,
+    protected cart: CartService,
   ) {}
 
   ngOnInit(): void {
@@ -41,6 +40,7 @@ export class RestaurantView implements OnInit {
       this.restaurantService.getBySlug(slug).subscribe({
         next: (restaurant) => {
           this.restaurant = restaurant;
+          this.cart.setRestaurant(restaurant);
           this.loadMenu(restaurant.id);
           this.applyTheme(restaurant.themeConfig);
         },
@@ -85,79 +85,43 @@ export class RestaurantView implements OnInit {
     return category.items?.filter(i => i.isAvailable).length || 0;
   }
 
-  // ── Cart methods ──
+  // ── Cart (global CartService) ──
 
-  addToCart(item: MenuItem): void {
-    const existing = this.cart.find(c => c.menuItem.id === item.id);
-    if (existing) {
-      existing.quantity++;
-    } else {
-      this.cart.push({ menuItem: item, quantity: 1, notes: '' });
-    }
+  getCartQuantity(itemId: string): number {
+    return this.cart.items().find(i => i.menuItem.id === itemId)?.quantity ?? 0;
   }
 
-  removeFromCart(itemId: string): void {
-    this.cart = this.cart.filter(c => c.menuItem.id !== itemId);
+  openItemForm(item: MenuItem): void {
+    this.itemForm = { item, quantity: 1, notes: '' };
+  }
+
+  incrementFormQty(): void {
+    if (this.itemForm) this.itemForm.quantity = Math.min(99, this.itemForm.quantity + 1);
+  }
+
+  decrementFormQty(): void {
+    if (this.itemForm) this.itemForm.quantity = Math.max(1, this.itemForm.quantity - 1);
+  }
+
+  confirmAddItem(): void {
+    if (!this.itemForm) return;
+    this.cart.addItem(this.itemForm.item, this.itemForm.quantity, this.itemForm.notes.trim() || undefined);
+    this.itemForm = null;
+  }
+
+  cancelItemForm(): void {
+    this.itemForm = null;
   }
 
   incrementQuantity(itemId: string): void {
-    const item = this.cart.find(c => c.menuItem.id === itemId);
-    if (item) item.quantity++;
+    this.cart.updateQuantity(itemId, this.getCartQuantity(itemId) + 1);
   }
 
   decrementQuantity(itemId: string): void {
-    const item = this.cart.find(c => c.menuItem.id === itemId);
-    if (item) {
-      if (item.quantity <= 1) {
-        this.removeFromCart(itemId);
-      } else {
-        item.quantity--;
-      }
-    }
-  }
-
-  getCartQuantity(itemId: string): number {
-    const item = this.cart.find(c => c.menuItem.id === itemId);
-    return item ? item.quantity : 0;
-  }
-
-  get cartTotal(): number {
-    return this.cart.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
-  }
-
-  get cartItemCount(): number {
-    return this.cart.reduce((sum, item) => sum + item.quantity, 0);
+    this.cart.updateQuantity(itemId, this.getCartQuantity(itemId) - 1);
   }
 
   toggleCart(): void {
     this.showCart = !this.showCart;
-  }
-
-  placeOrder(): void {
-    if (!this.restaurant || this.cart.length === 0) return;
-    this.ordering = true;
-    this.orderError = '';
-
-    const items = this.cart.map(c => ({
-      menuItemId: c.menuItem.id,
-      quantity: c.quantity,
-    }));
-
-    this.orderService.createOrder({
-      restaurantId: this.restaurant.id,
-      items,
-    }).subscribe({
-      next: () => {
-        this.orderSuccess = true;
-        this.cart = [];
-        this.showCart = false;
-        this.ordering = false;
-        setTimeout(() => (this.orderSuccess = false), 5000);
-      },
-      error: (err) => {
-        this.orderError = 'Error al crear el pedido. Intenta de nuevo.';
-        this.ordering = false;
-      },
-    });
   }
 }

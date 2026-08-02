@@ -34,6 +34,11 @@ export const routes: Routes = [
     canActivate: [roleGuard(['customer'])],
   },
   {
+    path: 'checkout',
+    loadComponent: () => import('./features/customer/checkout/checkout').then(m => m.Checkout),
+    canActivate: [() => authGuard('/checkout'), roleGuard(['customer'])],
+  },
+  {
     path: 'restaurant/dashboard',
     loadComponent: () => import('./features/restaurant/dashboard/dashboard').then(m => m.Dashboard),
     canActivate: [roleGuard(['restaurant'])],

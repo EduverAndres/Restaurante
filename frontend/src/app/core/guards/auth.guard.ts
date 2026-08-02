@@ -2,12 +2,12 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-export const authGuard = () => {
+export const authGuard = (returnUrl?: string) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
   if (auth.isLoggedIn()) return true;
 
-  router.navigate(['/auth/login']);
+  router.navigate(['/auth/login'], { queryParams: returnUrl ? { returnUrl } : undefined });
   return false;
 };

@@ -1,0 +1,207 @@
+<div class="page-narrow">
+  <h1 class="page-title">Checkout</h1>
+  <p class="page-subtitle">Confirmá tu pedido de <span class="font-semibold text-[#e11d2e]">{{ cart.restaurant()?.name }}</span></p>
+
+  @if (error) {
+    <div class="mt-6 p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600 flex items-center gap-2">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {{ error }}
+    </div>
+  }
+
+  <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_22rem] items-start">
+    <!-- Left column -->
+    <div class="space-y-6 min-w-0">
+      <!-- Address section -->
+      <section class="card p-6">
+        <h2 class="text-lg font-display font-bold text-[#171717] mb-4">Dirección de entrega</h2>
+
+        @if (addressesLoading) {
+          <div class="space-y-2">
+            <div class="h-14 rounded-xl shimmer"></div>
+            <div class="h-14 rounded-xl shimmer"></div>
+          </div>
+        } @else if (addresses.length > 0) {
+          <div class="space-y-3">
+            @for (address of addresses; track address.id) {
+              <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
+                [class.border-[#e11d2e]]="selectedAddressId === address.id"
+                [class.bg-[#fef2f2]]="selectedAddressId === address.id"
+                [class.border-gray-200]="selectedAddressId !== address.id"
+                [class.bg-white]="selectedAddressId !== address.id">
+                <input type="radio" name="address" [checked]="selectedAddressId === address.id"
+                  (change)="selectAddress(address.id)" class="mt-1 accent-[#e11d2e]">
+                <span class="min-w-0">
+                  <span class="block text-sm font-semibold text-[#171717]">
+                    {{ address.label }}
+                    @if (address.isDefault) {
+                      <span class="ml-2 badge badge-confirmed">Predeterminada</span>
+                    }
+                  </span>
+                  <span class="block text-sm text-[#737373] mt-0.5">{{ address.address }}</span>
+                </span>
+              </label>
+            }
+          </div>
+          <button (click)="toggleAddressForm()" class="btn btn-outline btn-sm mt-4">
+            {{ showAddressForm ? 'Cancelar' : '+ Agregar dirección' }}
+          </button>
+        }
+
+        @if (addressError) {
+          <div class="mt-3 text-sm text-red-600">{{ addressError }}</div>
+        }
+
+        @if (showAddressForm) {
+          <div class="mt-4 p-4 rounded-xl bg-[#fafafa] border border-gray-100 space-y-3">
+            <div>
+              <label class="label" for="addr-label">Nombre de la dirección</label>
+              <input id="addr-label" [(ngModel)]="newAddress.label" class="input" placeholder="Ej: Casa, Trabajo">
+            </div>
+            <div>
+              <label class="label" for="addr-address">Dirección</label>
+              <input id="addr-address" [(ngModel)]="newAddress.address" class="input" placeholder="Calle, número, ciudad">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="label" for="addr-lat">Latitud (opcional)</label>
+                <input id="addr-lat" [(ngModel)]="newAddress.latitude" class="input" placeholder="4.6097">
+              </div>
+              <div>
+                <label class="label" for="addr-lng">Longitud (opcional)</label>
+                <input id="addr-lng" [(ngModel)]="newAddress.longitude" class="input" placeholder="-74.0817">
+              </div>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-[#404040] cursor-pointer">
+              <input type="checkbox" [(ngModel)]="newAddress.isDefault" class="accent-[#e11d2e]">
+              Establecer como predeterminada
+            </label>
+            <button (click)="saveAddress()" [disabled]="addressSaving" class="btn btn-primary btn-sm">
+              @if (addressSaving) {
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                Guardando...
+              } @else {
+                Guardar dirección
+              }
+            </button>
+          </div>
+        }
+      </section>
+
+      <!-- Payment section -->
+      <section class="card p-6">
+        <h2 class="text-lg font-display font-bold text-[#171717] mb-4">Método de pago</h2>
+
+        <div class="space-y-3">
+          <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
+            [class.border-[#e11d2e]]="paymentMethod === 'CASH'"
+            [class.bg-[#fef2f2]]="paymentMethod === 'CASH'"
+            [class.border-gray-200]="paymentMethod !== 'CASH'"
+            [class.bg-white]="paymentMethod !== 'CASH'">
+            <input type="radio" name="method" [value]="'CASH'" [(ngModel)]="paymentMethod" class="accent-[#e11d2e]">
+            <span class="flex-1">
+              <span class="block text-sm font-semibold text-[#171717]">Efectivo al recibir</span>
+              <span class="block text-sm text-[#737373]">Pagá cuando llegue el pedido</span>
+            </span>
+          </label>
+
+          <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
+            [class.border-[#e11d2e]]="paymentMethod === 'CARD'"
+            [class.bg-[#fef2f2]]="paymentMethod === 'CARD'"
+            [class.border-gray-200]="paymentMethod !== 'CARD'"
+            [class.bg-white]="paymentMethod !== 'CARD'">
+            <input type="radio" name="method" [value]="'CARD'" [(ngModel)]="paymentMethod" class="accent-[#e11d2e]">
+            <span class="flex-1">
+              <span class="block text-sm font-semibold text-[#171717]">Tarjeta de crédito</span>
+              <span class="block text-sm text-[#737373]">Pago seguro con Wompi</span>
+            </span>
+          </label>
+        </div>
+
+        @if (paymentMethod === 'CARD') {
+          <div class="mt-4 p-4 rounded-xl bg-[#fafafa] border border-gray-100 space-y-3">
+            <div>
+              <label class="label" for="card-number">Número de tarjeta</label>
+              <input id="card-number" [(ngModel)]="card.number" class="input" placeholder="4242 4242 4242 4242" inputmode="numeric">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="label" for="card-expiry">Vencimiento</label>
+                <input id="card-expiry" [(ngModel)]="card.expiry" class="input" placeholder="MM/AA">
+              </div>
+              <div>
+                <label class="label" for="card-cvv">CVV</label>
+                <input id="card-cvv" [(ngModel)]="card.cvv" class="input" placeholder="123" inputmode="numeric">
+              </div>
+            </div>
+            <p class="text-xs text-[#737373]">Modo demo: la tarjeta no se envía al servidor. En producción se tokeniza con Wompi.js y se envía el token.</p>
+          </div>
+        }
+      </section>
+    </div>
+
+    <!-- Right column: order summary -->
+    <aside class="lg:sticky lg:top-24">
+      <div class="card p-6">
+        <h2 class="text-lg font-display font-bold text-[#171717] mb-4">Resumen del pedido</h2>
+
+        <div class="space-y-3 mb-4">
+          @for (item of cart.items(); track item.menuItem.id) {
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-[#171717]">{{ item.quantity }} × {{ item.menuItem.name }}</p>
+                @if (item.notes) {
+                  <p class="text-xs text-[#737373] mt-0.5">"{{ item.notes }}"</p>
+                }
+              </div>
+              <span class="text-sm font-semibold text-[#171717] whitespace-nowrap">${{ (item.menuItem.price * item.quantity).toFixed(2) }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="border-t border-gray-100 pt-3 space-y-2 text-sm">
+          <div class="flex justify-between text-[#737373]">
+            <span>Subtotal</span>
+            <span class="text-[#171717] font-medium">${{ cart.subtotal().toFixed(2) }}</span>
+          </div>
+          <div class="flex justify-between text-[#737373]">
+            <span>Envío</span>
+            <span class="text-[#171717] font-medium">${{ deliveryFee.toFixed(2) }}</span>
+          </div>
+          @if (cart.couponCode()) {
+            <div class="flex justify-between text-green-600">
+              <span>Cupón {{ cart.couponCode() }}</span>
+              <span class="font-medium">−${{ discountAmount.toFixed(2) }}</span>
+            </div>
+          }
+          <div class="flex justify-between pt-2 border-t border-gray-100">
+            <span class="font-semibold text-[#171717]">Total</span>
+            <span class="text-xl font-bold text-[#171717]">${{ total.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="label" for="customer-note">Notas para el restaurante (opcional)</label>
+          <textarea id="customer-note" [(ngModel)]="customerNote" rows="2" class="input resize-none"
+            placeholder="Ej: sin cebolla, extra salsa..."></textarea>
+        </div>
+
+        <button (click)="confirmOrder()" [disabled]="!canSubmit || submitting"
+          class="btn btn-primary btn-lg w-full mt-4">
+          @if (submitting) {
+            <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+            Procesando...
+          } @else if (orderCreated && orderCreated.paymentStatus !== 'Paid') {
+            Reintentar pago
+          } @else {
+            Confirmar pedido
+          }
+        </button>
+
+        @if (!canSubmit) {
+          <p class="mt-3 text-xs text-center text-[#737373]">Seleccioná una dirección de entrega para continuar</p>
+        }
+      </div>
+    </aside>
+  </div>
+</div>
