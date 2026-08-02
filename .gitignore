@@ -21,3 +21,8 @@ appsettings.Production.json
 # CodeGraph index.codegraph/
 
 .codegraph/
+
+# Agent/tooling local metadata
+.agents/
+.claude/
+skills-lock.json
