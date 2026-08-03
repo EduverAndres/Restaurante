@@ -12,9 +12,13 @@ using Restaurante.Infrastructure;
 using Restaurante.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+var environmentName = builder.Environment.EnvironmentName;
 
 // Secretos locales por entorno (ignorados por git, nunca al repo)
-builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json.local", optional: true);
+builder.Configuration.AddJsonFile($"appsettings.{environmentName}.json", optional: true);
+builder.Configuration.AddJsonFile($"appsettings.{environmentName}.json.local", optional: true);
+
+builder.Logging.AddConsole();
 
 builder.Services.AddCors(options =>
 {
@@ -74,17 +78,19 @@ using (var scope = app.Services.CreateScope())
     try
     {
         if (string.IsNullOrWhiteSpace(connectionString))
-            throw new InvalidOperationException("La cadena de conexión 'SupabaseConnection' está vacía o no se configuró.");
+            throw new InvalidOperationException($"La cadena de conexión 'SupabaseConnection' está vacía para '{environmentName}'. Copia appsettings.{environmentName}.json.local.example a appsettings.{environmentName}.json.local y llena tus credenciales de Supabase.");
+
+        app.Logger.LogInformation("Intentando validar la conexión de Supabase en entorno '{EnvironmentName}'.", environmentName);
 
         var canConnect = db.Database.CanConnect();
         if (!canConnect)
-            throw new InvalidOperationException("No se pudo establecer conexión con la base de datos de Supabase.");
+            throw new InvalidOperationException("No se pudo establecer conexión con la base de datos de Supabase. Verifica Host, Puerto, Usuario, Password, Base de datos y que el esquema usa UUID para las claves.");
 
         app.Logger.LogInformation("Conexión a la base de datos validada correctamente.");
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Error al validar la conexión a la base de datos. Verifica ConnectionStrings:SupabaseConnection.");
+        app.Logger.LogError(ex, "Error al validar la conexión a la base de datos. Verifica ConnectionStrings:SupabaseConnection y el esquema de Postgres (uuid/text). ");
         throw;
     }
 }
