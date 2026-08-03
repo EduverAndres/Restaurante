@@ -84,7 +84,10 @@ using (var scope = app.Services.CreateScope())
 
         var canConnect = db.Database.CanConnect();
         if (!canConnect)
-            throw new InvalidOperationException("No se pudo establecer conexión con la base de datos de Supabase. Verifica Host, Puerto, Usuario, Password, Base de datos y que el esquema usa UUID para las claves.");
+            throw new InvalidOperationException(
+                "No se pudo establecer conexión con la base de datos de Supabase. " +
+                "Verifica que el proyecto no esté pausado (reactívalo en https://supabase.com/dashboard), " +
+                "y que Host, Puerto, Usuario, Password, Base de datos y el esquema (uuid/text) sean correctos.");
 
         app.Logger.LogInformation("Conexión a la base de datos validada correctamente.");
     }
