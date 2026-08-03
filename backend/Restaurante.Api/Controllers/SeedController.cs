@@ -48,9 +48,20 @@ public class SeedController : ControllerBase
     public async Task<IActionResult> Seed()
     {
         var existing = await _users.GetByEmailAsync("demo@restaurante.app");
-        if (existing != null)
-            return Ok(new { message = "Seed data already exists", demoEmail = "demo@restaurante.app", demoPassword = "Demo123!" });
+        var phase1Message = "Seed data created successfully";
+        var restaurantsCreated = 0;
+        var usersCreated = 0;
+        var ridersCreated = 0;
+        var couponsCreated = 0;
+        var demoOrderDelivered = false;
+        var demoCouponCode = "";
 
+        if (existing != null)
+        {
+            phase1Message = "Seed data already exists";
+        }
+        else
+        {
         // Demo owner
         var owner = new User("demo@restaurante.app", "Chef Carlos", _password.Hash("Demo123!"), UserRole.RestaurantOwner);
         await _users.AddAsync(owner);
@@ -324,19 +335,246 @@ public class SeedController : ControllerBase
         };
         await _reviews.AddAsync(demoReview);
 
+            restaurantsCreated = 3;
+            usersCreated = 3;
+            ridersCreated = 1;
+            couponsCreated = 3;
+            demoOrderDelivered = true;
+            demoCouponCode = welcomeCoupon.Code;
+        }
+
+        var extended = await SeedExtendedDataAsync();
+        var extendedMessage = extended.Orders > 0
+            ? $"Extended seed created: {extended.Orders} orders, {extended.Reviews} reviews, {extended.Coupons} coupons"
+            : "Extended seed already exists";
+
         return Ok(new
         {
-            message = "Seed data created successfully",
+            message = phase1Message,
+            extendedMessage,
             demoEmail = "demo@restaurante.app",
             customerEmail = "cliente@restaurante.app",
             riderEmail = "rider@restaurante.app",
             demoPassword = "Demo123!",
-            restaurantsCreated = 3,
-            usersCreated = 3,
-            ridersCreated = 1,
-            couponsCreated = 3,
-            demoOrderDelivered = true,
-            demoCoupon = welcomeCoupon.Code
+            restaurantsCreated,
+            usersCreated,
+            ridersCreated,
+            couponsCreated,
+            demoOrderDelivered,
+            demoCoupon = demoCouponCode
         });
+    }
+
+    /// <summary>
+    /// Segundo set idempotente de datos "vivos": pedidos en todos los estados del ciclo
+    /// (pending, preparing, ready, out-for-delivery, delivered y cancelled), reseñas en
+    /// más restaurantes y un cupón extra. Guardado por el cupón marcador "SEEDV2" para que
+    /// correr /api/seed varias veces no duplique los pedidos (los pedidos pueden cambiar de
+    /// estado durante la validación manual, por eso el marcador no depende del estado).
+    /// </summary>
+    private async Task<(int Orders, int Reviews, int Coupons)> SeedExtendedDataAsync()
+    {
+        if (await _coupons.GetByCodeAsync("SEEDV2") != null)
+            return (0, 0, 0);
+
+        var customer = await _users.GetByEmailAsync("cliente@restaurante.app");
+        var riderUser = await _users.GetByEmailAsync("rider@restaurante.app");
+        var taco = await _restaurants.GetBySlugAsync("la-casa-del-taco");
+        var italian = await _restaurants.GetBySlugAsync("da-vincis-table");
+        var sushi = await _restaurants.GetBySlugAsync("sakura-sushi-bar");
+        if (customer is null || riderUser is null || taco is null || italian is null || sushi is null)
+            return (0, 0, 0);
+
+        var rider = await _riders.GetByUserIdAsync(riderUser.Id);
+        var home = (await _addresses.GetByUserIdAsync(customer.Id)).FirstOrDefault()?.Address
+            ?? "Av. Reforma 123, Ciudad de México";
+        if (rider is null)
+            return (0, 0, 0);
+
+        try
+        {
+            var tacoMenu = await _menuItems.GetByRestaurantIdAsync(taco.Id);
+            var italianMenu = await _menuItems.GetByRestaurantIdAsync(italian.Id);
+            var sushiMenu = await _menuItems.GetByRestaurantIdAsync(sushi.Id);
+
+            var pastor = MenuItemByName(tacoMenu, "Tacos al Pastor");
+            var huitlacoche = MenuItemByName(tacoMenu, "Quesadilla de Huitlacoche");
+            var horchata = MenuItemByName(tacoMenu, "Agua de Horchata");
+            var jamaica = MenuItemByName(tacoMenu, "Jamaica");
+            var spaghetti = MenuItemByName(italianMenu, "Spaghetti Carbonara");
+            var margherita = MenuItemByName(italianMenu, "Pizza Margherita");
+            var prosciutto = MenuItemByName(italianMenu, "Pizza Prosciutto");
+            var california = MenuItemByName(sushiMenu, "Roll California");
+            var teVerde = MenuItemByName(sushiMenu, "Té Verde");
+            var sashimi = MenuItemByName(sushiMenu, "Sashimi Salmón");
+            var sake = MenuItemByName(sushiMenu, "Sake Premium");
+
+            var now = DateTime.UtcNow;
+            var orders = 0;
+
+            // 1) Pending en Da Vinci's (sin cupón: sirve para probar POST apply-coupon).
+            var pendingItalian = OrderAt(now.AddMinutes(-12), customer, italian, home, OrderStatus.Pending, PaymentStatus.Pending,
+                "Sin cebolla en la pizza, por favor", now.AddMinutes(-12));
+            pendingItalian.Items.Add(new OrderItem(pendingItalian.Id, spaghetti.Id, 1, spaghetti.Price) { CreatedAt = now.AddMinutes(-12) });
+            pendingItalian.Items.Add(new OrderItem(pendingItalian.Id, margherita.Id, 1, margherita.Price) { CreatedAt = now.AddMinutes(-12) });
+            await _orders.AddAsync(pendingItalian);
+            orders++;
+
+            // 2) Preparing en Sakura (pago CARD).
+            var preparingSushi = OrderAt(now.AddMinutes(-42), customer, sushi, home, OrderStatus.Preparing, PaymentStatus.Paid, null, now.AddMinutes(-15));
+            preparingSushi.Items.Add(new OrderItem(preparingSushi.Id, california.Id, 2, california.Price) { CreatedAt = now.AddMinutes(-42) });
+            preparingSushi.Items.Add(new OrderItem(preparingSushi.Id, teVerde.Id, 1, teVerde.Price) { CreatedAt = now.AddMinutes(-42) });
+            preparingSushi.StatusHistory.Add(new OrderStatusHistory(preparingSushi.Id, OrderStatus.Pending, OrderStatus.Confirmed, "demo-seed") { CreatedAt = now.AddMinutes(-25) });
+            preparingSushi.StatusHistory.Add(new OrderStatusHistory(preparingSushi.Id, OrderStatus.Confirmed, OrderStatus.Preparing, "demo-seed") { CreatedAt = now.AddMinutes(-15) });
+            preparingSushi.Payments.Add(new Payment(preparingSushi.Id, preparingSushi.Total, "CARD")
+            {
+                Status = PaymentStatus.Paid,
+                TransactionId = $"TXN-SEED-{Guid.NewGuid():N}"[..20],
+                CreatedAt = now.AddMinutes(-40)
+            });
+            await _orders.AddAsync(preparingSushi);
+            orders++;
+
+            // 3) Ready en La Casa del Taco (pago CARD).
+            var readyTaco = OrderAt(now.AddMinutes(-60), customer, taco, home, OrderStatus.Ready, PaymentStatus.Paid, null, now.AddMinutes(-10));
+            readyTaco.Items.Add(new OrderItem(readyTaco.Id, pastor.Id, 1, pastor.Price) { CreatedAt = now.AddMinutes(-60) });
+            readyTaco.Items.Add(new OrderItem(readyTaco.Id, horchata.Id, 1, horchata.Price) { CreatedAt = now.AddMinutes(-60) });
+            AddHistory(readyTaco, 45, 30, 10);
+            readyTaco.Payments.Add(new Payment(readyTaco.Id, readyTaco.Total, "CARD")
+            {
+                Status = PaymentStatus.Paid,
+                TransactionId = $"TXN-SEED-{Guid.NewGuid():N}"[..20],
+                CreatedAt = now.AddMinutes(-58)
+            });
+            await _orders.AddAsync(readyTaco);
+            orders++;
+
+            // 4) OutForDelivery en Taco con rider asignado (los pedidos vivos del rider).
+            var outForDeliveryTaco = OrderAt(now.AddMinutes(-90), customer, taco, home, OrderStatus.OutForDelivery, PaymentStatus.Paid, null, now.AddMinutes(-25));
+            outForDeliveryTaco.Items.Add(new OrderItem(outForDeliveryTaco.Id, huitlacoche.Id, 2, huitlacoche.Price) { CreatedAt = now.AddMinutes(-90) });
+            outForDeliveryTaco.Items.Add(new OrderItem(outForDeliveryTaco.Id, jamaica.Id, 1, jamaica.Price) { CreatedAt = now.AddMinutes(-90) });
+            AddHistory(outForDeliveryTaco, 80, 65, 50, 35, 25);
+            outForDeliveryTaco.RiderId = rider.Id;
+            outForDeliveryTaco.AssignedAt = now.AddMinutes(-35);
+            outForDeliveryTaco.PickedUpAt = now.AddMinutes(-25);
+            outForDeliveryTaco.Payments.Add(new Payment(outForDeliveryTaco.Id, outForDeliveryTaco.Total, "CARD")
+            {
+                Status = PaymentStatus.Paid,
+                TransactionId = $"TXN-SEED-{Guid.NewGuid():N}"[..20],
+                CreatedAt = now.AddMinutes(-88)
+            });
+            await _orders.AddAsync(outForDeliveryTaco);
+            orders++;
+
+            // 5) Cancelled en Da (para ver el estado y el history Pending → Cancelled).
+            var cancelItalian = OrderAt(now.AddMinutes(-30), customer, italian, home, OrderStatus.Cancelled, PaymentStatus.Pending,
+                "Cliente canceló antes de confirmar", now.AddMinutes(-5));
+            cancelItalian.Items.Add(new OrderItem(cancelItalian.Id, prosciutto.Id, 1, prosciutto.Price) { CreatedAt = now.AddMinutes(-30) });
+            cancelItalian.StatusHistory.Add(new OrderStatusHistory(cancelItalian.Id, OrderStatus.Pending, OrderStatus.Cancelled, "demo-seed") { CreatedAt = now.AddMinutes(-5) });
+            await _orders.AddAsync(cancelItalian);
+            orders++;
+
+            // 6) Delivered en Sakura con reseña (rating 4).
+            var deliveredSushi = OrderAt(now.AddMinutes(-150), customer, sushi, home, OrderStatus.Delivered, PaymentStatus.Paid, null, now.AddMinutes(-60));
+            deliveredSushi.Items.Add(new OrderItem(deliveredSushi.Id, sashimi.Id, 2, sashimi.Price) { CreatedAt = now.AddMinutes(-150) });
+            deliveredSushi.Items.Add(new OrderItem(deliveredSushi.Id, sake.Id, 1, sake.Price) { CreatedAt = now.AddMinutes(-150) });
+            AddHistory(deliveredSushi, 130, 115, 100, 85, 75, 60);
+            deliveredSushi.RiderId = rider.Id;
+            deliveredSushi.AssignedAt = now.AddMinutes(-85);
+            deliveredSushi.PickedUpAt = now.AddMinutes(-75);
+            deliveredSushi.DeliveredAt = now.AddMinutes(-60);
+            deliveredSushi.Payments.Add(new Payment(deliveredSushi.Id, deliveredSushi.Total, "CASH")
+            {
+                Status = PaymentStatus.Paid,
+                TransactionId = $"CASH-SEED-{Guid.NewGuid():N}"[..20],
+                CreatedAt = now.AddMinutes(-148)
+            });
+            await _orders.AddAsync(deliveredSushi);
+            orders++;
+
+            // 7) Delivered en Da — V's Table con reseña (rating 5).
+            var deliveredItalian = OrderAt(now.AddMinutes(-210), customer, italian, home, OrderStatus.Delivered, PaymentStatus.Paid, null, now.AddMinutes(-115));
+            deliveredItalian.Items.Add(new OrderItem(deliveredItalian.Id, spaghetti.Id, 1, spaghetti.Price) { CreatedAt = now.AddMinutes(-210) });
+            deliveredItalian.Items.Add(new OrderItem(deliveredItalian.Id, prosciutto.Id, 1, prosciutto.Price) { CreatedAt = now.AddMinutes(-210) });
+            AddHistory(deliveredItalian, 190, 175, 160, 145, 130, 115);
+            deliveredItalian.RiderId = rider.Id;
+            deliveredItalian.AssignedAt = now.AddMinutes(-145);
+            deliveredItalian.PickedUpAt = now.AddMinutes(-130);
+            deliveredItalian.DeliveredAt = now.AddMinutes(-115);
+            deliveredItalian.Payments.Add(new Payment(deliveredItalian.Id, deliveredItalian.Total, "CASH")
+            {
+                Status = PaymentStatus.Paid,
+                TransactionId = $"CASH-SEED-{Guid.NewGuid():N}"[..20],
+                CreatedAt = now.AddMinutes(-208)
+            });
+            await _orders.AddAsync(deliveredItalian);
+            orders++;
+
+            // Reseñas extra para que la agregación de rating de resto no esté vacía.
+            await _reviews.AddAsync(new Review
+            {
+                RestaurantId = sushi.Id,
+                CustomerId = customer.Id,
+                OrderId = deliveredSushi.Id,
+                Rating = 4,
+                Comment = "Sushi súper fresco y muy bien presentado. El sashimi de salmón es imperdible.",
+                CreatedAt = now.AddMinutes(-55)
+            });
+            await _reviews.AddAsync(new Review
+            {
+                RestaurantId = italian.Id,
+                CustomerId = customer.Id,
+                OrderId = deliveredItalian.Id,
+                Rating = 5,
+                Comment = "La carbonara es la mejor que he probado fuera de Roma. Pasta fresca de verdad.",
+                CreatedAt = now.AddMinutes(-110)
+            });
+            var reviews = 2;
+
+            // Cupón marcador + dato extra para el listado de cupones del owner.
+            await _coupons.AddAsync(new Coupon
+            {
+                Code = "SEEDV2",
+                DiscountType = DiscountType.Fixed,
+                DiscountValue = 20,
+                RestaurantId = sushi.Id,
+                ValidFrom = DateTime.UtcNow.AddDays(-30),
+                ValidUntil = DateTime.UtcNow.AddDays(30),
+                MaxUses = 100,
+                MinOrderAmount = 150,
+                IsActive = true
+            });
+            var coupons = 1;
+
+            return (orders, reviews, coupons);
+        }
+        catch (InvalidOperationException)
+        {
+            // Algún ítem del menú fase 1 no existe: no podemos armar pedidos válidos.
+            return (0, 0, 0);
+        }
+    }
+
+    private static MenuItem MenuItemByName(List<MenuItem> menu, string name) =>
+        menu.First(i => i.Name == name);
+
+    private static Order OrderAt(DateTime createdAt, User customer, Restaurant restaurant, string address,
+        OrderStatus status, PaymentStatus paymentStatus, string? notes, DateTime updatedAt) =>
+        new Order(customer.Id, restaurant.Id)
+        {
+            Status = status,
+            PaymentStatus = paymentStatus,
+            DeliveryAddress = address,
+            Notes = notes,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+
+    private static void AddHistory(Order order, params double[] minutesFromNow)
+    {
+        var now = DateTime.UtcNow;
+        var steps = new[] { OrderStatus.Pending, OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.AssignedToRider, OrderStatus.OutForDelivery, OrderStatus.Delivered };
+        for (int i = 0; i < minutesFromNow.Length; i++)
+            order.StatusHistory.Add(new OrderStatusHistory(order.Id, steps[i], steps[i + 1], "demo-seed") { CreatedAt = now.AddMinutes(-minutesFromNow[i]) });
     }
 }

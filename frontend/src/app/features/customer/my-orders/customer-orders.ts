@@ -59,8 +59,8 @@ export class CustomerOrders implements OnInit, OnDestroy {
       next: (data) => {
         this.orders = data;
         this.loading = false;
-        // Join order groups after orders are loaded
-        this.signalr.start().then(() => this.joinActiveOrderGroups());
+        // Connection is started once in ngOnInit; joins are no-ops until Connected
+        this.joinActiveOrderGroups();
       },
       error: () => {
         this.loading = false;

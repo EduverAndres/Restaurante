@@ -32,8 +32,19 @@ export class SignalrService {
     this.hubConnection.onclose(() => this.isConnected.set(false));
   }
 
+  private connectionAttempt: Promise<void> | null = null;
+
   async start(): Promise<void> {
-    if (this.hubConnection.state === signalR.HubConnectionState.Connected) return;
+    const state = this.hubConnection.state;
+    if (state === signalR.HubConnectionState.Connected) return;
+    if (state === signalR.HubConnectionState.Connecting && this.connectionAttempt) {
+      return this.connectionAttempt;
+    }
+    this.connectionAttempt = this.connect();
+    return this.connectionAttempt;
+  }
+
+  private async connect(): Promise<void> {
     try {
       await this.hubConnection.start();
       this.isConnected.set(true);
