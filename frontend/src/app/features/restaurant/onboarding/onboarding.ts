@@ -78,6 +78,9 @@ export class Onboarding implements OnInit {
           this.router.navigate(['/restaurant/dashboard']);
         }
       },
+      error: () => {
+        this.error.set('No se pudo verificar tu tienda. Intentá de nuevo.');
+      },
     });
   }
 

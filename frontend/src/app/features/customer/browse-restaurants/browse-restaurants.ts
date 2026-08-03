@@ -52,10 +52,18 @@ export class BrowseRestaurants implements OnInit {
         if (data.length > 0) {
           // The list DTO is intentionally light (no fees, hours, coords):
           // enrich each restaurant with its detail so the filters can work.
-          this.enrich(data).subscribe((rich) => {
-            this.restaurants = rich;
-            this.applyFilters();
-            this.loading = false;
+          this.enrich(data).subscribe({
+            next: (rich) => {
+              this.restaurants = rich;
+              this.applyFilters();
+              this.loading = false;
+            },
+            error: () => {
+              this.restaurants = SAMPLE_RESTAURANTS;
+              this.usingSampleData = true;
+              this.applyFilters();
+              this.loading = false;
+            },
           });
         } else {
           this.restaurants = SAMPLE_RESTAURANTS;

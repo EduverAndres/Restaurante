@@ -85,10 +85,16 @@ export class Settings implements OnInit {
             this.populate();
             this.loading = false;
           },
-          error: () => (this.loading = false),
+          error: () => {
+            this.loading = false;
+            this.toast.show('No se pudieron cargar los datos de tu tienda', 'error');
+          },
         });
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.toast.show('No se pudieron cargar tus restaurantes', 'error');
+      },
     });
   }
 

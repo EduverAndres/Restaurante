@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { isApiErrorEnvelope } from './api-response';
 import { Order, normalizeOrder } from './order.service';
@@ -126,10 +126,18 @@ export class RestaurantService {
     return value as T;
   }
 
+  /** Guards known call sites that can pass an `undefined` restaurant id. */
+  private requireRestaurantId(id: string | null | undefined): Observable<never> | null {
+    if (!id || id === 'undefined' || id === 'null') {
+      return throwError(() => new Error('El restaurante no está disponible.'));
+    }
+    return null;
+  }
+
   getAll(): Observable<Restaurant[]> {
     return this.http.get<any>(`${this.apiUrl}`).pipe(
       map((res: any) => {
-        const list = res.data || res;
+        const list = this.unwrap<any>(res.data || res);
         return Array.isArray(list) ? list.map(r => this.normalizeRestaurant(r)) : list;
       })
     );
@@ -150,15 +158,23 @@ export class RestaurantService {
   getByOwner(): Observable<Restaurant[]> {
     return this.http.get<any>(`${this.apiUrl}/owner`).pipe(
       map((res: any) => {
-        const list = res.data || res;
+        const list = this.unwrap<any>(res.data || res);
         return Array.isArray(list) ? list.map(r => this.normalizeRestaurant(r)) : list;
       })
     );
   }
 
   getById(id: string): Observable<Restaurant> {
+    const guard = this.requireRestaurantId(id);
+    if (guard) return guard;
     return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
-      map((res: any) => this.normalizeRestaurant(res.data || res))
+      map((res: any) => {
+        const restaurant = this.unwrap<Restaurant>(res.data || res);
+        if (!restaurant || !restaurant.id) {
+          throw new Error('Restaurant not found or invalid response.');
+        }
+        return this.normalizeRestaurant(restaurant);
+      })
     );
   }
 
@@ -170,25 +186,27 @@ export class RestaurantService {
 
   update(id: string, data: Partial<Restaurant>): Observable<Restaurant> {
     return this.http.put<any>(`${this.apiUrl}/${id}`, data).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.unwrap<Restaurant>(res.data || res))
     );
   }
 
   getMenu(restaurantId: string): Observable<MenuCategory[]> {
+    const guard = this.requireRestaurantId(restaurantId);
+    if (guard) return guard;
     return this.http.get<any>(`${environment.apiUrl}/restaurants/${restaurantId}/menu`).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.unwrap<MenuCategory[]>(res.data || res))
     );
   }
 
   createMenuItem(restaurantId: string, data: Partial<MenuItem>): Observable<MenuItem> {
     return this.http.post<any>(`${environment.apiUrl}/restaurants/${restaurantId}/menu`, data).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.unwrap<MenuItem>(res.data || res))
     );
   }
 
   updateMenuItem(restaurantId: string, itemId: string, data: Partial<MenuItem>): Observable<MenuItem> {
     return this.http.put<any>(`${environment.apiUrl}/restaurants/${restaurantId}/menu/${itemId}`, data).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.unwrap<MenuItem>(res.data || res))
     );
   }
 
@@ -198,13 +216,13 @@ export class RestaurantService {
 
   createCategory(restaurantId: string, data: Partial<MenuCategory>): Observable<MenuCategory> {
     return this.http.post<any>(`${environment.apiUrl}/restaurants/${restaurantId}/categories`, data).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.unwrap<MenuCategory>(res.data || res))
     );
   }
 
   updateCategory(restaurantId: string, categoryId: string, data: Partial<MenuCategory>): Observable<MenuCategory> {
     return this.http.put<any>(`${environment.apiUrl}/restaurants/${restaurantId}/categories/${categoryId}`, data).pipe(
-      map((res: any) => res.data || res)
+      map((res: any) => this.unwrap<MenuCategory>(res.data || res))
     );
   }
 
@@ -252,7 +270,7 @@ export class RestaurantService {
   getDashboard(restaurantId: string): Observable<RestaurantDashboard> {
     return this.http.get<any>(`${this.apiUrl}/${restaurantId}/dashboard`).pipe(
       map((res: any) => {
-        const data = res.data || res;
+        const data = this.unwrap<any>(res.data || res);
         return {
           ...data,
           recentOrders: Array.isArray(data.recentOrders) ? (data.recentOrders as any[]).map((o: any) => normalizeOrder(o)) : [],

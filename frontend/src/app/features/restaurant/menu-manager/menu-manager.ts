@@ -44,18 +44,27 @@ export class MenuManager implements OnInit {
           this.loading = false;
         }
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.error = 'No se pudieron cargar tus restaurantes';
+      },
     });
   }
 
   private loadMenu(): void {
-    if (!this.restaurantId) return;
+    if (!this.restaurantId) {
+      this.loading = false;
+      return;
+    }
     this.restaurantService.getMenu(this.restaurantId).subscribe({
       next: (data) => {
         this.categories = data;
         this.loading = false;
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.error = 'No se pudo cargar el menú';
+      },
     });
   }
 
@@ -85,12 +94,12 @@ export class MenuManager implements OnInit {
     if (this.editingCategory) {
       this.restaurantService.updateCategory(this.restaurantId, this.editingCategory.id, this.categoryForm).subscribe({
         next: () => { this.loadMenu(); this.cancelCategory(); this.saving = false; },
-        error: (e) => { this.error = 'Error al guardar'; this.saving = false; },
+        error: (e) => { this.error = readableApiError(e, 'Error al guardar'); this.saving = false; },
       });
     } else {
       this.restaurantService.createCategory(this.restaurantId, this.categoryForm).subscribe({
         next: () => { this.loadMenu(); this.cancelCategory(); this.saving = false; },
-        error: (e) => { this.error = 'Error al guardar'; this.saving = false; },
+        error: (e) => { this.error = readableApiError(e, 'Error al guardar'); this.saving = false; },
       });
     }
   }
@@ -99,6 +108,7 @@ export class MenuManager implements OnInit {
     if (!confirm('¿Eliminar esta categoría y todos sus items?')) return;
     this.restaurantService.deleteCategory(this.restaurantId, id).subscribe({
       next: () => this.loadMenu(),
+      error: (e) => this.toast.show(readableApiError(e, 'No se pudo eliminar la categoría'), 'error'),
     });
   }
 
@@ -151,12 +161,12 @@ export class MenuManager implements OnInit {
     if (this.editingItem) {
       this.restaurantService.updateMenuItem(this.restaurantId, this.editingItem.id, payload).subscribe({
         next: () => { this.loadMenu(); this.cancelItem(); this.saving = false; },
-        error: (e) => { this.error = 'Error al guardar item'; this.saving = false; },
+        error: (e) => { this.error = readableApiError(e, 'Error al guardar item'); this.saving = false; },
       });
     } else {
       this.restaurantService.createMenuItem(this.restaurantId, payload).subscribe({
         next: () => { this.loadMenu(); this.cancelItem(); this.saving = false; },
-        error: (e) => { this.error = 'Error al guardar item'; this.saving = false; },
+        error: (e) => { this.error = readableApiError(e, 'Error al guardar item'); this.saving = false; },
       });
     }
   }
@@ -165,6 +175,7 @@ export class MenuManager implements OnInit {
     if (!confirm('¿Eliminar este item?')) return;
     this.restaurantService.deleteMenuItem(this.restaurantId, itemId).subscribe({
       next: () => this.loadMenu(),
+      error: (e) => this.toast.show(readableApiError(e, 'No se pudo eliminar el item'), 'error'),
     });
   }
 

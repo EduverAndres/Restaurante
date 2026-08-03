@@ -59,7 +59,7 @@ export class CouponService {
   getRestaurantCoupons(restaurantId: string): Observable<Coupon[]> {
     return this.http.get<any>(`${this.apiUrl}/${restaurantId}/coupons`).pipe(
       map((res: any) => {
-        const list = res.data || res;
+        const list = this.unwrap<any>(res.data || res);
         return Array.isArray(list) ? (list as Coupon[]) : [];
       })
     );

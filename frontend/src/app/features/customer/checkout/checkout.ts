@@ -8,6 +8,7 @@ import { AddressService, CustomerAddress } from '../../../core/services/address.
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { isApiErrorEnvelope } from '../../../core/services/api-response';
+import { readableApiError } from '../../../core/utils/restaurant-onboarding';
 
 const DEMO_CARD_TOKEN = 'tok_test_demo';
 
@@ -83,8 +84,9 @@ export class Checkout implements OnInit {
         this.selectedAddressId = def?.id ?? this.addresses[0]?.id ?? null;
         this.showAddressForm = this.addresses.length === 0;
       },
-      error: () => {
+      error: (err) => {
         this.addressesLoading = false;
+        this.addressError = readableApiError(err, 'No se pudieron cargar las direcciones');
         this.showAddressForm = true;
       },
     });

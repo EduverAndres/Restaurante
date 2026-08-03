@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Restaurante.Application.Interfaces;
@@ -19,13 +20,15 @@ public class StorageService : IStorageService
     private readonly IConfiguration _config;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<StorageService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public StorageService(HttpClient httpClient, IConfiguration config, IWebHostEnvironment env, ILogger<StorageService> logger)
+    public StorageService(HttpClient httpClient, IConfiguration config, IWebHostEnvironment env, ILogger<StorageService> logger, IHttpContextAccessor httpContextAccessor)
     {
         _httpClient = httpClient;
         _config = config;
         _env = env;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<string> UploadAsync(Stream fileStream, string fileName, string contentType, string folder)
@@ -61,7 +64,8 @@ public class StorageService : IStorageService
         }
 
         // Dev-only local fallback: uploads are stored under wwwroot/uploads and
-        // served statically at /uploads/{folder}/{fileName}. See README (Phase 5).
+        // served statically at /uploads/{folder}/{fileName}. The URL is absolute so
+        // images render regardless of which origin serves the SPA.
         _logger.LogWarning("Supabase storage not configured — using dev-only local upload fallback");
         var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
         var relativePath = Path.Combine("uploads", folder, safeName);
@@ -73,7 +77,11 @@ public class StorageService : IStorageService
             await fileStream.CopyToAsync(file);
         }
 
-        return "/" + relativePath.Replace('\\', '/');
+        var httpContext = _httpContextAccessor.HttpContext;
+        var baseUrl = httpContext is null
+            ? _config["App:BaseUrl"] ?? "http://localhost:5001"
+            : $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+        return $"{baseUrl.TrimEnd('/')}/{relativePath.Replace('\\', '/')}";
     }
 
     private static string SanitizeFileName(string fileName)

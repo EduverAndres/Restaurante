@@ -66,19 +66,29 @@ export class RestaurantPosts implements OnInit {
           this.loading = false;
         }
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.error = 'No se pudieron cargar tus restaurantes';
+      },
     });
   }
 
   private loadMenu(): void {
-    if (!this.restaurant) return;
-    this.restaurantService.getMenu(this.restaurant.id).subscribe({
+    const restaurantId = this.restaurant?.id;
+    if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
+      this.loading = false;
+      return;
+    }
+    this.restaurantService.getMenu(restaurantId).subscribe({
       next: (data) => {
         this.categories = data;
         this.buildPostsFromMenu();
         this.loading = false;
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.error = 'No se pudo cargar el menú';
+      },
     });
   }
 

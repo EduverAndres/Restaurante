@@ -12,7 +12,7 @@ backend/Restaurante.Api/restaurante.db-wal
 Thumbs.db
 
 # Secrets (never commit real credentials)
-appsettings.Development.json.local
+appsettings.*.json.local
 appsettings.Production.json
 *.user-secrets.json
 .env

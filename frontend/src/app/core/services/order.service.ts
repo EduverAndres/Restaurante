@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiErrorEnvelope } from './api-response';
+import { ApiErrorEnvelope, isApiErrorEnvelope } from './api-response';
 
 export interface OrderItem {
   menuItemId: string;
@@ -93,10 +93,19 @@ export class OrderService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * Business validation failures arrive as HTTP 200 with { success: false, message, data: null }
+   * (see apiResponseInterceptor). Surface them as thrown errors so callers can read `message`.
+   */
+  private unwrap<T>(value: any): T {
+    if (isApiErrorEnvelope(value)) throw value;
+    return value as T;
+  }
+
   getCustomerOrders(): Observable<Order[]> {
     return this.http.get<any>(`${this.apiUrl}/customer`).pipe(
       map((res: any) => {
-        const list = res.data || res;
+        const list = this.unwrap<any>(res.data || res);
         return Array.isArray(list) ? list.map(o => normalizeOrder(o)) : list;
       })
     );
@@ -105,7 +114,7 @@ export class OrderService {
   getRestaurantOrders(restaurantId: string): Observable<Order[]> {
     return this.http.get<any>(`${this.apiUrl}/restaurant/${restaurantId}`).pipe(
       map((res: any) => {
-        const list = res.data || res;
+        const list = this.unwrap<any>(res.data || res);
         return Array.isArray(list) ? list.map(o => normalizeOrder(o)) : list;
       })
     );
@@ -113,7 +122,7 @@ export class OrderService {
 
   getOrderById(orderId: string): Observable<Order> {
     return this.http.get<any>(`${this.apiUrl}/${orderId}`).pipe(
-      map((res: any) => normalizeOrder(res.data || res))
+      map((res: any) => normalizeOrder(this.unwrap<Order>(res.data || res)))
     );
   }
 
@@ -131,7 +140,7 @@ export class OrderService {
 
   updateStatus(orderId: string, status: string): Observable<Order> {
     return this.http.put<any>(`${this.apiUrl}/${orderId}/status`, { status }).pipe(
-      map((res: any) => normalizeOrder(res.data || res))
+      map((res: any) => normalizeOrder(this.unwrap<Order>(res.data || res)))
     );
   }
 
@@ -142,7 +151,7 @@ export class OrderService {
    */
   assignRider(orderId: string, riderId?: string): Observable<Order> {
     return this.http.post<any>(`${this.apiUrl}/${orderId}/assign-rider`, riderId ? { riderId } : {}).pipe(
-      map((res: any) => normalizeOrder(res.data || res))
+      map((res: any) => normalizeOrder(this.unwrap<Order>(res.data || res)))
     );
   }
 }

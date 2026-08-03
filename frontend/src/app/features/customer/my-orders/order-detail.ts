@@ -130,7 +130,10 @@ export class OrderDetail implements OnInit, OnDestroy {
         this.loading = false;
         this.prepareTracking();
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.toast.show('No se pudo cargar el pedido', 'error');
+      },
     });
   }
 

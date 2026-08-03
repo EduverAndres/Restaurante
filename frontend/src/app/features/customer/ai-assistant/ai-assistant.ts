@@ -50,6 +50,10 @@ export class AiAssistant implements OnInit {
           this.restaurantName = r.name;
           this.startConversation();
         },
+        error: () => {
+          this.error = 'No se pudo cargar el restaurante';
+          this.loading.set(false);
+        },
       });
     }
   }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Restaurante.Domain.Entities;
 using Restaurante.Domain.Enums;
 
@@ -82,7 +83,11 @@ public class RestauranteDbContext : DbContext
 
             entity.Property(e => e.Images).HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                v => JsonSerializer.Deserialize<string[]>(v, (JsonSerializerOptions?)null) ?? Array.Empty<string>());
+                v => JsonSerializer.Deserialize<string[]>(v, (JsonSerializerOptions?)null) ?? Array.Empty<string>(),
+                new ValueComparer<string[]>(
+                    (a, b) => a!.SequenceEqual(b!),
+                    v => v.Aggregate(0, (acc, s) => HashCode.Combine(acc, s.GetHashCode())),
+                    v => v.ToArray()));
 
             entity.HasMany(e => e.OrderItems).WithOne(e => e.MenuItem).HasForeignKey(e => e.MenuItemId).OnDelete(DeleteBehavior.Restrict);
         });

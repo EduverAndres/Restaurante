@@ -62,7 +62,10 @@ export class CustomerOrders implements OnInit, OnDestroy {
         // Join order groups after orders are loaded
         this.signalr.start().then(() => this.joinActiveOrderGroups());
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.toast.show('No se pudieron cargar tus pedidos', 'error');
+      },
     });
   }
 
@@ -76,8 +79,16 @@ export class CustomerOrders implements OnInit, OnDestroy {
 
     this.orderService.getOrderById(order.id).subscribe({
       next: (full) => {
+        if (!full || !full.restaurantId) {
+          this.reorderFailed();
+          return;
+        }
         this.restaurantService.getById(full.restaurantId).subscribe({
           next: (restaurant) => {
+            if (!restaurant || !restaurant.id) {
+              this.reorderFailed();
+              return;
+            }
             this.restaurantService.getMenu(restaurant.id).subscribe({
               next: (menu) => {
                 const menuItems = menu.flatMap(c => c.items);

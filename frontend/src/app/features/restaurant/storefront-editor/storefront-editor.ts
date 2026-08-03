@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { RestaurantService, Restaurant, ThemeConfig } from '../../../core/services/restaurant.service';
+import { readableApiError } from '../../../core/utils/restaurant-onboarding';
 
 @Component({
   selector: 'app-storefront-editor',
@@ -50,7 +51,10 @@ export class StorefrontEditor implements OnInit {
           }
           this.loading = false;
         },
-        error: () => (this.loading = false),
+        error: () => {
+          this.loading = false;
+          this.error = 'No se pudo cargar la tienda';
+        },
       });
     }
   }
@@ -76,7 +80,7 @@ export class StorefrontEditor implements OnInit {
         },
         error: (e) => {
           this.saving = false;
-          this.error = 'Error al guardar';
+          this.error = readableApiError(e, 'Error al guardar');
         },
       });
     }
