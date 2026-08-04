@@ -11,6 +11,7 @@ public class OrderDto
     public decimal DiscountAmount { get; set; }
     public Guid? CouponId { get; set; }
     public string PaymentStatus { get; set; } = string.Empty;
+    public string? PaymentMethod { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<OrderItemDto> Items { get; set; } = new();
@@ -32,6 +33,9 @@ public class CreateOrderDto
     public Guid RestaurantId { get; set; }
     public List<CreateOrderItemDto> Items { get; set; } = new();
     public string? Notes { get; set; }
+    public string? DeliveryAddress { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 }
 
 public class CreateOrderItemDto

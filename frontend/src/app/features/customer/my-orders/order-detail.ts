@@ -10,6 +10,7 @@ import { AddressService } from '../../../core/services/address.service';
 import { ReviewService } from '../../../core/services/review.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { isApiErrorEnvelope } from '../../../core/services/api-response';
+import { paymentBadgeClass, paymentMethodLabel, paymentStatusLabel } from '../../../core/utils/restaurant-dashboard';
 
 interface LatLng {
   lat: number;
@@ -409,4 +410,8 @@ export class OrderDetail implements OnInit, OnDestroy {
     };
     return map[status] || 'bg-gray-300';
   }
+
+  protected readonly paymentStatusLabel = paymentStatusLabel;
+  protected readonly paymentBadgeClass = paymentBadgeClass;
+  protected readonly paymentMethodLabel = paymentMethodLabel;
 }

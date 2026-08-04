@@ -47,7 +47,6 @@ public class SeedController : ControllerBase
     [HttpPost("seed")]
     public async Task<IActionResult> Seed()
     {
-        var existing = await _users.GetByEmailAsync("demo@restaurante.app");
         var phase1Message = "Seed data created successfully";
         var restaurantsCreated = 0;
         var usersCreated = 0;
@@ -56,20 +55,36 @@ public class SeedController : ControllerBase
         var demoOrderDelivered = false;
         var demoCouponCode = "";
 
-        if (existing != null)
+        // Owner demo: reusar si ya existe (evita duplicar al re-ejecutar seed).
+        var owner = await _users.GetByEmailAsync("demo@restaurante.app");
+        if (owner is null)
         {
-            phase1Message = "Seed data already exists";
+            owner = new User("demo@restaurante.app", "Chef Carlos", _password.Hash("Demo123!"), UserRole.RestaurantOwner);
+            await _users.AddAsync(owner);
+            usersCreated++;
         }
-        else
+
+        // Customer demo: reusar si ya existe.
+        var customer = await _users.GetByEmailAsync("cliente@restaurante.app");
+        if (customer is null)
         {
-        // Demo owner
-        var owner = new User("demo@restaurante.app", "Chef Carlos", _password.Hash("Demo123!"), UserRole.RestaurantOwner);
-        await _users.AddAsync(owner);
+            customer = new User("cliente@restaurante.app", "María García", _password.Hash("Demo123!"), UserRole.Customer);
+            await _users.AddAsync(customer);
+            usersCreated++;
+        }
 
-        // Demo customer
-        var customer = new User("cliente@restaurante.app", "María García", _password.Hash("Demo123!"), UserRole.Customer);
-        await _users.AddAsync(customer);
+        // Horse demo: reusar si ya existe.
+        var riderUser = await _users.GetByEmailAsync("rider@restaurante.app");
+        if (riderUser is null)
+        {
+            riderUser = new User("rider@restaurante.app", "Pedro Torres", _password.Hash("Demo123!"), UserRole.Delivery);
+            await _users.AddAsync(riderUser);
+            usersCreated++;
+        }
 
+        var tacoExists = await _restaurants.GetBySlugAsync("la-casa-del-taco");
+        if (tacoExists is null)
+        {
         // === 1. LA CASA DEL TACO ===
         var taco = new Restaurant("La Casa del Taco", "la-casa-del-taco", owner.Id)
         {
@@ -198,8 +213,6 @@ public class SeedController : ControllerBase
         await _businessHours.ReplaceAsync(sushi.Id, sushiHours);
 
         // === RIDER DEMO (ubicado a ~400 m de La Casa del Taco) ===
-        var riderUser = new User("rider@restaurante.app", "Pedro Torres", _password.Hash("Demo123!"), UserRole.Delivery);
-        await _users.AddAsync(riderUser);
         var rider = new Rider
         {
             UserId = riderUser.Id,
@@ -348,10 +361,16 @@ public class SeedController : ControllerBase
             ? $"Extended seed created: {extended.Orders} orders, {extended.Reviews} reviews, {extended.Coupons} coupons"
             : "Extended seed already exists";
 
+        var catalog = await SeedRealisticCatalogAsync();
+        var catalogMessage = catalog.Restaurants > 0
+            ? $"Realistic catalog created: {catalog.Restaurants} restaurants, {catalog.MenuItems} menu items, {catalog.Coupons} coupons, {catalog.Orders} orders, {catalog.Reviews} reviews"
+            : "Realistic catalog already exists";
+
         return Ok(new
         {
             message = phase1Message,
             extendedMessage,
+            catalogMessage,
             demoEmail = "demo@restaurante.app",
             customerEmail = "cliente@restaurante.app",
             riderEmail = "rider@restaurante.app",
@@ -555,8 +574,411 @@ public class SeedController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Catálogo realista adicional: 6 restaurantes con menús completos, horarios, cupones
+    /// y pedidos entregados con reseñas. Idempotente: se salta si "La Burger House" existe.
+    /// </summary>
+    private async Task<(int Restaurants, int MenuItems, int Coupons, int Orders, int Reviews)> SeedRealisticCatalogAsync()
+    {
+        if (await _restaurants.GetBySlugAsync("la-burger-house") != null)
+            return (0, 0, 0, 0, 0);
+
+        var owner = await _users.GetByEmailAsync("demo@restaurante.app");
+        var customer = await _users.GetByEmailAsync("cliente@restaurante.app");
+        var riderUser = await _users.GetByEmailAsync("rider@restaurante.app");
+        if (owner is null || customer is null || riderUser is null)
+            return (0, 0, 0, 0, 0);
+
+        var rider = await _riders.GetByUserIdAsync(riderUser.Id);
+        if (rider is null)
+            return (0, 0, 0, 0, 0);
+
+        var home = (await _addresses.GetByUserIdAsync(customer.Id)).FirstOrDefault()?.Address
+            ?? "Av. Reforma 123, Ciudad de México";
+
+        var restaurants = 0;
+        var menuItems = 0;
+        var coupons = 0;
+        var orders = 0;
+        var reviews = 0;
+
+        // === 1. LA BURGER HOUSE (hamburguesas, Roma Norte) ===
+        var burger = new Restaurant("La Burger House", "la-burger-house", owner.Id)
+        {
+            Description = "Hamburguesas artesanales de res Angus con pan brioche, maduradas y a la leña. Papas caseras y malteadas de temporada.",
+            Logo = "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=200&h=200&fit=crop",
+            CoverImage = "https://images.unsplash.com/photo-1550547660-d9450f859349?w=1200&h=600&fit=crop",
+            Phone = "+52 555 214 8890",
+            Address = "Av. Álvaro Obregón 158, Roma Norte, CDMX",
+            Latitude = 19.4189,
+            Longitude = -99.1631,
+            RadiusKm = 6,
+            DeliveryFee = 49,
+            MinOrderAmount = 120,
+            EstimatedPrepTimeMinutes = 25,
+            ThemeConfig = "{\"primaryColor\":\"#b2582b\",\"secondaryColor\":\"#7a3b1c\",\"accentColor\":\"#f2c14e\",\"backgroundColor\":\"#fdf6ee\",\"textColor\":\"#241c15\",\"fontFamily\":\"Inter\"}"
+        };
+        await _restaurants.AddAsync(burger);
+        restaurants++;
+
+        var burgerCat1 = new Category("Hamburguesas", burger.Id) { Description = "Artesanales", SortOrder = 1 };
+        var burgerCat2 = new Category("Sides", burger.Id) { Description = "Guarniciones", SortOrder = 2 };
+        var burgerCat3 = new Category("Bebidas", burger.Id) { Description = "Refrescos y malteadas", SortOrder = 3 };
+        await _categories.AddAsync(burgerCat1);
+        await _categories.AddAsync(burgerCat2);
+        await _categories.AddAsync(burgerCat3);
+
+        var burgerSmash = await AddMenuItemAsync(burger.Id, burgerCat1.Id, "Smash Burger Clásica", 165,
+            "Doble smash de res, queso americano, cebolla confitada, lechuga y salsa de la casa en pan brioche.", 12, "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&h=300&fit=crop", true);
+        var burgerBbq = await AddMenuItemAsync(burger.Id, burgerCat1.Id, "BBQ Bacon Smash", 189,
+            "Doble smash, tocino ahumado, cebolla crispy y BBQ de la casa.", 15, "https://images.unsplash.com/photo-1553979459-d2229ba9743b?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(burger.Id, burgerCat1.Id, "Crispy Chicken", 175,
+            "Pollo crujiente, coleslaw, pepinillos y miel de jalapeño.", 16, "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop");
+        var burgerFries = await AddMenuItemAsync(burger.Id, burgerCat2.Id, "Papas a la francesa", 59,
+            "Papas caseras fritas con sal de mar y parmesano.", 8, "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(burger.Id, burgerCat2.Id, "Aros de cebolla", 69,
+            "Aros de cebolla crujientes con salsa de pija.", 10, "https://images.unsplash.com/photo-1639024471283-03518883512d?w=400&h=300&fit=crop");
+        var burgerSoda = await AddMenuItemAsync(burger.Id, burgerCat3.Id, "Refresco de cola", 35,
+            "Refresco de cola bien frío 600 ml.", 2, "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(burger.Id, burgerCat3.Id, "Malteada de vainilla", 69,
+            "Malteada cremosa con helado artesanal.", 6, "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&h=300&fit=crop");
+        menuItems += 7;
+
+        await _businessHours.ReplaceAsync(burger.Id, CatalogHours(burger.Id, 12, 23));
+        var burgerCoupon = new Coupon { Code = "BURGERR10", DiscountType = DiscountType.Percentage, DiscountValue = 10, RestaurantId = burger.Id, ValidFrom = DateTime.UtcNow.AddDays(-10), ValidUntil = DateTime.UtcNow.AddDays(30), MaxUses = 500, MinOrderAmount = 140, IsActive = true };
+        await _coupons.AddAsync(burgerCoupon);
+        coupons++;
+
+        // === 2. MASA WOK (asiático, Polanco) ===
+        var wok = new Restaurant("Masa Wok", "masa-wok-polanco", owner.Id)
+        {
+            Description = "Wok y comida pan-asiática: tallarines, arroz, dumplings y curries. Recetas rápidas y frescas.",
+            Logo = "https://images.unsplash.com/photo-1556742521-9713bf272865?w=200&h=200&fit=crop",
+            CoverImage = "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=1200&h=600&fit=crop",
+            Phone = "+52 55 8680 4421",
+            Address = "Av. Homero 418, Polanco, CDMX",
+            Latitude = 19.4306,
+            Longitude = -99.1952,
+            RadiusKm = 5,
+            DeliveryFee = 55,
+            MinOrderAmount = 140,
+            EstimatedPrepTimeMinutes = 20,
+            ThemeConfig = "{\"primaryColor\":\"#c62828\",\"secondaryColor\":\"#4e342e\",\"accentColor\":\"#ffb300\",\"backgroundColor\":\"#fff8e1\",\"textColor\":\"#212121\",\"fontFamily\":\"Inter\"}"
+        };
+        await _restaurants.AddAsync(wok);
+        restaurants++;
+
+        var wokCat1 = new Category("Tallarines", wok.Id) { Description = "Al wok", SortOrder = 1 };
+        var wokCat2 = new Category("Dumplings", wok.Id) { Description = "Al vapor o fritos", SortOrder = 2 };
+        var wokCat3 = new Category("Bebidas", wok.Id) { Description = "Tés y jugos", SortOrder = 3 };
+        await _categories.AddAsync(wokCat1);
+        await _categories.AddAsync(wokCat2);
+        await _categories.AddAsync(wokCat3);
+
+        var wokNoodles = await AddMenuItemAsync(wok.Id, wokCat1.Id, "Lo Mein de Pollo", 148,
+            "Tallarines de huevo salteados al wok con pollo, zanahoria, pimiento y soja.", 15, "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400&h=300&fit=crop", true);
+        await AddMenuItemAsync(wok.Id, wokCat1.Id, "Arroz frito con camarones", 165,
+            "Arroz salteado con camarones, arvejas, huevo y cebollín.", 15, "https://images.unsplash.com/photo-1525755662778-989d0524087e?w=400&h=300&fit=crop");
+        var wokGyoza = await AddMenuItemAsync(wok.Id, wokCat2.Id, "Gyozas de cerdo", 95,
+            "6 gyozas a la plancha con salsa ponzu.", 12, "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(wok.Id, wokCat2.Id, "Dumplings de camarón", 105,
+            "8 dumplings al vapor con salsa de soja.", 14, "https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=400&h=300&fit=crop");
+        var wokTea = await AddMenuItemAsync(wok.Id, wokCat3.Id, "Té verde helado", 39,
+            "Té verde frío con limón y miel.", 3, "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=300&fit=crop");
+        menuItems += 5;
+
+        await _businessHours.ReplaceAsync(wok.Id, CatalogHours(wok.Id, 12, 23));
+        var wokCoupon = new Coupon { Code = "WOK10", DiscountType = DiscountType.Fixed, DiscountValue = 40, RestaurantId = wok.Id, ValidFrom = DateTime.UtcNow.AddDays(-5), ValidUntil = DateTime.UtcNow.AddDays(21), MaxUses = 80, MinOrderAmount = 180, IsActive = true };
+        await _coupons.AddAsync(wokCoupon);
+        coupons++;
+
+        // === 3. Verde Vida (healthy bowls, Condesa) ===
+        var life = new Restaurant("Verde Vida", "verde-vida", owner.Id)
+        {
+            Description = "Bowls saludables, ensaladas y smoothies con ingredientes orgánicos. Energía real para el día a día.",
+            Logo = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop",
+            CoverImage = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&h=600&fit=crop",
+            Phone = "+52 55 4293 1187",
+            Address = "Av. Ámsterdam 230, Hipódromo Condesa, CDMX",
+            Latitude = 19.4122,
+            Longitude = -99.1707,
+            RadiusKm = 4,
+            DeliveryFee = 39,
+            MinOrderAmount = 100,
+            EstimatedPrepTimeMinutes = 15,
+            ThemeConfig = "{\"primaryColor\":\"#2e7d32\",\"secondaryColor\":\"#1b5e20\",\"accentColor\":\"#a5d6a7\",\"backgroundColor\":\"#f1f8e9\",\"textColor\":\"#1a1a2e\",\"fontFamily\":\"Inter\"}"
+        };
+        await _restaurants.AddAsync(life);
+        restaurants++;
+
+        var lifeCat1 = new Category("Bowls", life.Id) { Description = "Bowls completos", SortOrder = 1 };
+        var lifeCat2 = new Category("Ensaladas", life.Id) { Description = "Mediterránea y completa", SortOrder = 2 };
+        var lifeCat3 = new Category("Smoothies", life.Id) { Description = "Frescos, sin azúcar", SortOrder = 3 };
+        await _categories.AddAsync(lifeCat1);
+        await _categories.AddAsync(lifeCat2);
+        await _categories.AddAsync(lifeCat3);
+
+        var lifeQuinoa = await AddMenuItemAsync(life.Id, lifeCat1.Id, "Bowl de quinoa", 129,
+            "Quinoa, garbanzos, camote rostizado, aguacate y semillas de girasol.", 12, "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop", true);
+        await AddMenuItemAsync(life.Id, lifeCat1.Id, "Bowl de atún poke", 155,
+            "Arroz, atún fresco, pepino, edamame y ajonjolí con aderezo de soja.", 14, "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop");
+        var lifeCesar = await AddMenuItemAsync(life.Id, lifeCat2.Id, "Ensalada César", 119,
+            "Lechuga romana, pollo a la plancha, parmesсов y croutons.", 10, "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(life.Id, lifeCat2.Id, "Ensalada griega", 109,
+            "Tomate, pepino, falndo, aceite de oliva vetado y olivas.", 8, "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop");
+        var lifeSmoothie = await AddMenuItemAsync(life.Id, lifeCat3.Id, "Smoothie de mango", 75,
+            "Mango, banano y yogurt sin azúcar.", 5, "https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(life.Id, lifeCat3.Id, "Smoothie verde", 79,
+            "Espinaca, piña, banano y chía.", 5, "https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&h=300&fit=crop");
+        menuItems += 6;
+
+        await _businessHours.ReplaceAsync(life.Id, CatalogHours(life.Id, 9, 22));
+        var lifeCoupon = new Coupon { Code = "LIFE15", DiscountType = DiscountType.Percentage, DiscountValue = 15, RestaurantId = life.Id, ValidFrom = DateTime.UtcNow.AddDays(-7), ValidUntil = DateTime.UtcNow.AddDays(20), MaxUses = 120, MinOrderAmount = 90, IsActive = true };
+        await _coupons.AddAsync(lifeCoupon);
+        coupons++;
+
+        // === 4. Don Jet (taquería al pastor, La Condesa) ===
+        var taqueria = new Restaurant("Don Jet", "don-jet-taqueria", owner.Id)
+        {
+            Description = "Taquería de barrio con pastor de hoyo, tortillas hechas a mano y salsas de la casa.",
+            Logo = "https://images.unsplash.com/photo-1551099810-62f8ba5e6e2b?w=200&h=200&fit=crop",
+            CoverImage = "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=1200&h=600&fit=crop",
+            Phone = "+52 55 7740 1225",
+            Address = "Colima 152, Roma Norte, CDMX",
+            Latitude = 19.4200,
+            Longitude = -99.1625,
+            RadiusKm = 3,
+            DeliveryFee = 29,
+            MinOrderAmount = 70,
+            EstimatedPrepTimeMinutes = 15,
+            ThemeConfig = "{\"primaryColor\":\"#c0392b\",\"secondaryColor\":\"#8e44ad\",\"accentColor\":\"#f1c40f\",\"backgroundColor\":\"#fdf6ec\",\"textColor\":\"#1a1a2e\",\"fontFamily\":\"Inter\"}"
+        };
+        await _restaurants.AddAsync(taqueria);
+        restaurants++;
+
+        var taqCat1 = new Category("Tacos", taqueria.Id) { Description = "De la casa", SortOrder = 1 };
+        var taqCat2 = new Category("Antojos", taqueria.Id) { Description = "Guarniciones", SortOrder = 2 };
+        var taqCat3 = new Category("Bebidas", taqueria.Id) { Description = "Refrescos", SortOrder = 3 };
+        await _categories.AddAsync(taqCat1);
+        await _categories.AddAsync(taqCat2);
+        await _categories.AddAsync(taqCat3);
+
+        var taqPastor = await AddMenuItemAsync(taqueria.Id, taqCat1.Id, "Tacos al pastor (2)", 69,
+            "Al pastor de hoyo con piña, cebolla, cilantro, salsa verde y limón.", 6, "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=400&h=300&fit=crop", true);
+        await AddMenuItemAsync(taqueria.Id, taqCat1.Id, "Tacos de canasta (5)", 59,
+            "Gorditas de chicharrón prensado, papa y frijoles cocidos.", 5, "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&h=300&fit=crop");
+        var taqQuesadilla = await AddMenuItemAsync(taqueria.Id, taqCat2.Id, "Quesadilla de tinga", 55,
+            "Tortilla de maíz con tinga de pollo y queso Oaxaca.", 7, "https://images.unsplash.com/photo-1615361200141-f45040f367be?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(taqueria.Id, taqCat2.Id, "Frijoles charros", 45,
+            "Frijoles de la olla con chorizo.", 8, "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400&h=300&fit=crop");
+        var taqJamaica = await AddMenuItemAsync(taqueria.Id, taqCat3.Id, "Agua de Jamaica", 25,
+            "Agua de jamaica bien fría, 400 ml.", 2, "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&h=300&fit=crop");
+        menuItems += 5;
+
+        await _businessHours.ReplaceAsync(taqueria.Id, CatalogHours(taqueria.Id, 16, 23));
+        var taqCoupon = new Coupon { Code = "TACOS5", DiscountType = DiscountType.Percentage, DiscountValue = 5, RestaurantId = taqueria.Id, ValidFrom = DateTime.UtcNow.AddDays(-2), ValidUntil = DateTime.UtcNow.AddDays(10), MaxUses = 150, MinOrderAmount = 60, IsActive = true };
+        await _coupons.AddAsync(taqCoupon);
+        coupons++;
+
+        // === 5. MOKA CAFÉ (café de especialidad, La Condesa) ===
+        var cafe = new Restaurant("Café Moka", "cafe-moka", owner.Id)
+        {
+            Description = "Café de especialidad, repostería casera y desayunos todo el día.",
+            Logo = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=200&h=200&fit=crop",
+            CoverImage = "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=1200&h=600&fit=crop",
+            Phone = "+52 55 5564 8821",
+            Address = "Av. Michoacán 93, Hipódromo Condesa, CDMX",
+            Latitude = 19.4143,
+            Longitude = -99.1698,
+            RadiusKm = 3,
+            DeliveryFee = 35,
+            MinOrderAmount = 60,
+            EstimatedPrepTimeMinutes = 10,
+            ThemeConfig = "{\"primaryColor\":\"#6d4c41\",\"secondaryColor\":\"#3e2723\",\"accentColor\":\"#d7ccc8\",\"backgroundColor\":\"#faf3ea\",\"textColor\":\"#241c15\",\"fontFamily\":\"Inter\"}"
+        };
+        await _restaurants.AddAsync(cafe);
+        restaurants++;
+
+        var cafeCat1 = new Category("Desayunos", cafe.Id) { Description = "Todo el día", SortOrder = 1 };
+        var cafeCat2 = new Category("Cafés", cafe.Id) { Description = "De especialidad", SortOrder = 2 };
+        var cafeCat3 = new Category("Repostería", cafe.Id) { Description = "Casera", SortOrder = 3 };
+        await _categories.AddAsync(cafeCat1);
+        await _categories.AddAsync(cafeCat2);
+        await _categories.AddAsync(cafeCat3);
+
+        var cafeChilaquiles = await AddMenuItemAsync(cafe.Id, cafeCat1.Id, "Chilaquiles verdes", 99,
+            "Chilaquiles con salsa verde, crema, queso fresco y huevo (opcional).", 10, "https://images.unsplash.com/photo-1519214605652-51e9f9d2d5f0?w=400&h=300&fit=crop", true);
+        await AddMenuItemAsync(cafe.Id, cafeCat1.Id, "Huevos rancheros", 89,
+            "Huevos estrellados sobre tortilla con salsa roja y frijoles.", 10, "https://images.unsplash.com/photo-1547593180-6546ec4cb72f?w=400&h=300&fit=crop");
+        var cafeLatte = await AddMenuItemAsync(cafe.Id, cafeCat2.Id, "Latte artesanal", 55,
+            "Espresso doble con leche cremada, tamaño 12 oz.", 4, "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(cafe.Id, cafeCat2.Id, "Capuchino", 52,
+            "Espresso doble con leche y espuma densa.", 4, "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=300&fit=crop");
+        var cafeBrownie = await AddMenuItemAsync(cafe.Id, cafeCat3.Id, "Brownie de chocolate", 55,
+            "Brownie húmedo con nuez.", 3, "https://images.unsplash.com/photo-1511381939415-e44015466834?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(cafe.Id, cafeCat3.Id, "Cinnamon roll", 69,
+            "Rollito de canela glaseada.", 5, "https://images.unsplash.com/photo-1511918134-3af4d78b2f55?w=400&h=300&fit=crop");
+        menuItems += 6;
+
+        await _businessHours.ReplaceAsync(cafe.Id, CatalogHours(cafe.Id, 8, 19));
+        var cafeCoupon = new Coupon { Code = "MOKA10", DiscountType = DiscountType.Percentage, DiscountValue = 10, RestaurantId = cafe.Id, ValidFrom = DateTime.UtcNow.AddDays(-3), ValidUntil = DateTime.UtcNow.AddDays(14), MaxUses = 200, MinOrderAmount = 70, IsActive = true };
+        await _coupons.AddAsync(cafeCoupon);
+        coupons++;
+
+        // === 6. PIZZERÍA MISS MARGHERITA (napolitana, Coyoacán) ===
+        var pizza = new Restaurant("Pizzería Miss Margherita", "miss-margherita", owner.Id)
+        {
+            Description = "Pizza napolitana con masa 48 horas, horno alto y productos artesanales.",
+            Logo = "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?w=200&h=200&fit=crop",
+            CoverImage = "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&h=600&fit=crop",
+            Phone = "+52 55 5658 1110",
+            Address = "Calle Francisco Sosa 99, del Carmen, Coyoacán",
+            Latitude = 19.3504,
+            Longitude = -99.1688,
+            RadiusKm = 5,
+            DeliveryFee = 40,
+            MinOrderAmount = 120,
+            EstimatedPrepTimeMinutes = 30,
+            ThemeConfig = "{\"primaryColor\":\"#b71c1c\",\"secondaryColor\":\"#9a4d0e\",\"accentColor\":\"#ffca28\",\"backgroundColor\":\"#fff7ec\",\"textColor\":\"#1a1a2e\",\"fontFamily\":\"Playfair Display\"}"
+        };
+        await _restaurants.AddAsync(pizza);
+        restaurants++;
+
+        var pizzaCat1 = new Category("Pizzas", pizza.Id) { Description = "Napolitanas", SortOrder = 1 };
+        var pizzaCat2 = new Category("Entradas", pizza.Id) { Description = "Para compartir", SortOrder = 2 };
+        var pizzaCat3 = new Category("Postres", pizza.Id) { Description = "Caseros", SortOrder = 3 };
+        await _categories.AddAsync(pizzaCat1);
+        await _categories.AddAsync(pizzaCat2);
+        await _categories.AddAsync(pizzaCat3);
+
+        var pizzaMargherita = await AddMenuItemAsync(pizza.Id, pizzaCat1.Id, "Pizza Margherita", 179,
+            "Tomate San Marzano, mozzarella fior di latte y albahaca fresca.", 15, "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop", true);
+        await AddMenuItemAsync(pizza.Id, pizzaCat1.Id, "Pizza Capricciosa", 205,
+            "Jamón, champiñones, alcachofa y aceitunas.", 16, "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop");
+        var pizzaBruschetta = await AddMenuItemAsync(pizza.Id, pizzaCat2.Id, "Bruschetta pomodoro", 75,
+            "Pan rústico tostado con tomate, ajo y aceite de oliva.", 8, "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(pizza.Id, pizzaCat2.Id, "Ensalada de rúcula", 65,
+            "Rúcula, parmesano en lasca y reducción de balsámico.", 6, "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop");
+        await AddMenuItemAsync(pizza.Id, pizzaCat3.Id, "Tiramisú de casa", 95,
+            "Capas de mascarpone, café y cacao.", 4, "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&h=300&fit=crop");
+        menuItems += 5;
+
+        await _businessHours.ReplaceAsync(pizza.Id, CatalogHours(pizza.Id, 13, 23));
+        var pizzaCoupon = new Coupon { Code = "MARGH10", DiscountType = DiscountType.Percentage, DiscountValue = 10, RestaurantId = pizza.Id, ValidFrom = DateTime.UtcNow.AddDays(-9), ValidUntil = DateTime.UtcNow.AddDays(18), MaxUses = 200, MinOrderAmount = 130, IsActive = true };
+        await _coupons.AddAsync(pizzaCoupon);
+        coupons++;
+
+        // === PEDIDOS ENTREGADOS + RESEÑAS (uno por restaurante para que el rating no esté vacío) ===
+        var deliveredOrders = new List<(Order Order, Review Review)>
+        {
+            await SeedCatalogDeliveredOrderAsync(burger, customer, rider, home,
+                (burgerSmash, 1), (burgerFries, 1), 4, "Las mejores smash de la Roma. El brioche siempre fresco."),
+            await SeedCatalogDeliveredOrderAsync(wok, customer, rider, home,
+                (wokNoodles, 1), (wokGyoza, 2), 5, "El Lo Mein llega caliente y las gyozas una delicia."),
+            await SeedCatalogDeliveredOrderAsync(life, customer, rider, home,
+                (lifeQuinoa, 1), (lifeSmoothie, 1), 4, "Súper fresco, el bowl de quinoa es generoso."),
+            await SeedCatalogDeliveredOrderAsync(taqueria, customer, rider, home,
+                (taqPastor, 2), (taqJamaica, 1), 5, "El pastor de hoyo se nota en el sabor, llegaron calientes."),
+            await SeedCatalogDeliveredOrderAsync(cafe, customer, rider, home,
+                (cafeChilaquiles, 1), (cafeLatte, 2), 4, "Los chilaquiles y el latte, lo mejor para empezar el día."),
+            await SeedCatalogDeliveredOrderAsync(pizza, customer, rider, home,
+                (pizzaMargherita, 1), (pizzaBruschetta, 1), 5, "Masa espectacular, se siente la fermentación larga.")
+        };
+
+        orders = deliveredOrders.Count;
+        reviews = deliveredOrders.Count;
+
+        return (restaurants, menuItems, coupons, orders, reviews);
+    }
+
+    /// <summary>
+    /// Crea un pedido entregado completo (historial, pago, reseña) para un restaurante del catálogo.
+    /// </summary>
+    private async Task<(Order Order, Review Review)> SeedCatalogDeliveredOrderAsync(
+        Restaurant restaurant, User customer, Rider rider, string home,
+        (MenuItem Item, int Qty) first, (MenuItem Item, int Qty) second,
+        int rating, string comment)
+    {
+        var now = DateTime.UtcNow;
+        var created = now.AddMinutes(-now.Minute - Random.Shared.Next(60, 240));
+        var subtotal = first.Item.Price * first.Qty + second.Item.Price * second.Qty;
+        var total = subtotal + restaurant.DeliveryFee;
+
+        var order = new Order(customer.Id, restaurant.Id)
+        {
+            Status = OrderStatus.Delivered,
+            Total = total,
+            DeliveryFee = restaurant.DeliveryFee,
+            PaymentStatus = PaymentStatus.Paid,
+            DeliveryAddress = home,
+            Latitude = 19.4300,
+            Longitude = -99.1300,
+            RiderId = rider.Id,
+            AssignedAt = created.AddMinutes(35),
+            PickedUpAt = created.AddMinutes(45),
+            DeliveredAt = created.AddMinutes(60),
+            CreatedAt = created,
+            UpdatedAt = created.AddMinutes(60)
+        };
+        order.Items.Add(new OrderItem(order.Id, first.Item.Id, first.Qty, first.Item.Price) { CreatedAt = created });
+        order.Items.Add(new OrderItem(order.Id, second.Item.Id, second.Qty, second.Item.Price) { CreatedAt = created });
+
+        var steps = new[] { OrderStatus.Pending, OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.AssignedToRider, OrderStatus.OutForDelivery, OrderStatus.Delivered };
+        var minutes = new[] { 5, 15, 28, 35, 45, 60 };
+        for (int i = 0; i < minutes.Length; i++)
+            order.StatusHistory.Add(new OrderStatusHistory(order.Id, steps[i], steps[i + 1], "demo-seed") { CreatedAt = created.AddMinutes(minutes[i]) });
+
+        order.Payments.Add(new Payment(order.Id, total, "CASH")
+        {
+            Status = PaymentStatus.Paid,
+            TransactionId = $"CASH-{Guid.NewGuid():N}"[..20],
+            CreatedAt = created.AddMinutes(3)
+        });
+        await _orders.AddAsync(order);
+
+        var review = new Review
+        {
+            RestaurantId = restaurant.Id,
+            CustomerId = customer.Id,
+            OrderId = order.Id,
+            Rating = rating,
+            Comment = comment,
+            CreatedAt = created.AddMinutes(65)
+        };
+        await _reviews.AddAsync(review);
+
+        return (order, review);
+    }
+
+    private async Task<MenuItem> AddMenuItemAsync(Guid restaurantId, Guid categoryId, string name, decimal price,
+        string description, int preparationTime, string image, bool featured = false)
+    {
+        var item = new MenuItem(name, price, restaurantId, categoryId)
+        {
+            Description = description,
+            PreparationTime = preparationTime,
+            Images = new[] { image },
+            IsFeatured = featured
+        };
+        await _menuItems.AddAsync(item);
+        return item;
+    }
+
     private static MenuItem MenuItemByName(List<MenuItem> menu, string name) =>
         menu.First(i => i.Name == name);
+
+    private static List<BusinessHour> CatalogHours(Guid restaurantId, int openHour, int closeHour)
+    {
+        return Enumerable.Range(0, 7)
+            .Select(day => new BusinessHour
+            {
+                RestaurantId = restaurantId,
+                DayOfWeek = day,
+                OpenTime = new TimeSpan(openHour, 0, 0),
+                CloseTime = new TimeSpan(closeHour, 0, 0)
+            })
+            .ToList();
+    }
 
     private static Order OrderAt(DateTime createdAt, User customer, Restaurant restaurant, string address,
         OrderStatus status, PaymentStatus paymentStatus, string? notes, DateTime updatedAt) =>

@@ -64,12 +64,21 @@
             <div class="flex items-center gap-2 flex-wrap">
               <span class="text-sm font-bold text-[#171717]">#{{ shortOrderId(order.id) }}</span>
               <span class="badge {{ statusBadgeClass(order.status) }}">{{ statusLabel(order.status) }}</span>
+              @if (order.paymentMethod) {
+                <span class="badge badge-primary">{{ paymentMethodLabel(order.paymentMethod) }}</span>
+              }
               <span class="badge {{ paymentBadgeClass(order.paymentStatus) }}">{{ paymentStatusLabel(order.paymentStatus) }}</span>
             </div>
             <span class="text-xs text-gray-400 font-medium">{{ order.createdAt | date:'HH:mm' }}</span>
           </div>
 
           <p class="text-sm text-[#737373] mb-3">{{ order.customerName }}</p>
+
+          @if (order.deliveryAddress) {
+            <div class="mb-4 p-3 rounded-xl bg-[#fafafa] border border-primary-100 text-xs text-gray-600 leading-relaxed">
+              <span class="font-semibold text-primary-700">Dirección de entrega:</span> {{ order.deliveryAddress }}
+            </div>
+          }
 
           <div class="space-y-2 mb-4 bg-[#fafafa] rounded-xl p-3">
             @for (item of order.items; track $index) {

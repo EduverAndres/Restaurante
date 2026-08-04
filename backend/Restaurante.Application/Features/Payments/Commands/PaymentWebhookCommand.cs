@@ -67,6 +67,8 @@ public class PaymentWebhookCommandHandler : IRequestHandler<PaymentWebhookComman
         if (order is not null)
         {
             order.PaymentStatus = newStatus.Value;
+            if (newStatus.Value == PaymentStatus.Paid && string.IsNullOrEmpty(order.PaymentMethod))
+                order.PaymentMethod = payment.Method;
             order.UpdatedAt = DateTime.UtcNow;
             await _orderRepository.UpdateAsync(order);
 

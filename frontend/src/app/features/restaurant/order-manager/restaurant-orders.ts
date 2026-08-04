@@ -12,6 +12,7 @@ import {
   formatMoney,
   nextTransitions,
   paymentBadgeClass,
+  paymentMethodLabel,
   paymentStatusLabel,
   shortOrderId,
   statusBadgeClass,
@@ -201,6 +202,7 @@ export class RestaurantOrders implements OnInit, OnDestroy {
   protected readonly transitionLabel = transitionLabel;
   protected readonly paymentStatusLabel = paymentStatusLabel;
   protected readonly paymentBadgeClass = paymentBadgeClass;
+  protected readonly paymentMethodLabel = paymentMethodLabel;
   protected readonly formatMoney = formatMoney;
   protected readonly canCancel = canCancel;
   protected readonly shortOrderId = shortOrderId;

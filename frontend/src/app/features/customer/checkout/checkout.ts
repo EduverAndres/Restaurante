@@ -34,7 +34,6 @@ export class Checkout implements OnInit {
   error = '';
   submitting = false;
   orderCreated: Order | null = null;
-  couponApplied = false;
 
   constructor(
     protected cart: CartService,
@@ -152,11 +151,18 @@ export class Checkout implements OnInit {
     const restaurantId = this.cart.restaurantId();
     if (!restaurantId) return;
 
+    const selectedAddress = this.addresses.find(a => a.id === this.selectedAddressId) ?? null;
+
     this.submitting = true;
     this.orderService.createOrder({
       restaurantId,
       items: this.cart.items().map(i => ({ menuItemId: i.menuItem.id, quantity: i.quantity, notes: i.notes })),
       notes: this.customerNote.trim() || undefined,
+      deliveryAddress: selectedAddress
+        ? [selectedAddress.label, selectedAddress.address].map(p => p?.trim()).filter(Boolean).join(', ')
+        : undefined,
+      latitude: selectedAddress?.latitude ?? null,
+      longitude: selectedAddress?.longitude ?? null,
     }).subscribe({
       next: (res: any) => {
         if (res && isApiErrorEnvelope(res)) {
@@ -188,7 +194,6 @@ export class Checkout implements OnInit {
           this.pay(order);
           return;
         }
-        this.couponApplied = true;
         this.orderCreated = res;
         this.pay(res);
       },

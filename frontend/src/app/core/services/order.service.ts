@@ -37,6 +37,9 @@ export interface Order {
   customerNote?: string;
   notes?: string;
   paymentStatus?: string;
+  /** Backend PaymentMethod ("CASH" | "CARD"); absent before payment. */
+  paymentMethod?: string | null;
+  deliveryAddress?: string | null;
   /** Destination coordinates (not exposed by the backend OrderDto; filled
    *  client-side from the customer's default address when available). */
   latitude?: number | null;
@@ -50,6 +53,9 @@ export interface CreateOrderRequest {
   items: { menuItemId: string; quantity: number; notes?: string }[];
   customerNote?: string;
   notes?: string;
+  deliveryAddress?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 const STATUS_NORMALIZATION: Record<string, OrderStatus> = {
@@ -62,6 +68,23 @@ const STATUS_NORMALIZATION: Record<string, OrderStatus> = {
   Delivered: 'delivered',
   Cancelled: 'cancelled',
 };
+
+const PAYMENT_STATUS_NORMALIZATION: Record<string, string> = {
+  Pending: 'pending',
+  Paid: 'paid',
+  Failed: 'failed',
+  Refunded: 'refunded',
+};
+
+/**
+ * The backend serializes PaymentStatus enums as PascalCase ("Paid"); the
+ * frontend uses lowercase values. Null-safe: missing statuses yield undefined
+ * so components can rely on `paymentStatus` being a string or undefined.
+ */
+export function normalizePaymentStatus(status: string | null | undefined): string | undefined {
+  if (status == null || status === '') return undefined;
+  return PAYMENT_STATUS_NORMALIZATION[status] ?? status.toLowerCase();
+}
 
 /**
  * The backend serializes OrderStatus enums as PascalCase ("OutForDelivery");
@@ -77,6 +100,7 @@ export function normalizeOrder(order: any): Order {
   return {
     ...order,
     status: normalizeOrderStatus(order.status),
+    paymentStatus: normalizePaymentStatus(order.paymentStatus),
     customerNote: order.customerNote ?? order.notes,
     items: (order.items ?? []).map((item: any) => ({
       ...item,

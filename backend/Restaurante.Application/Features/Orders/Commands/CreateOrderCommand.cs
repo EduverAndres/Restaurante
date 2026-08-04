@@ -14,6 +14,9 @@ public class CreateOrderCommand : IRequest<ApiResponse<OrderDto>>
     public Guid RestaurantId { get; set; }
     public List<CreateOrderItemDto> Items { get; set; } = new();
     public string? Notes { get; set; }
+    public string? DeliveryAddress { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 }
 
 public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, ApiResponse<OrderDto>>
@@ -81,6 +84,9 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         order.DeliveryFee = restaurant.DeliveryFee;
         order.Total = subtotal + restaurant.DeliveryFee;
         order.Notes = request.Notes;
+        order.DeliveryAddress = request.DeliveryAddress;
+        order.Latitude = request.Latitude;
+        order.Longitude = request.Longitude;
 
         if (!string.IsNullOrWhiteSpace(request.Notes))
         {

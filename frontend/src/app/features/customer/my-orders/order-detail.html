@@ -35,6 +35,20 @@
         </span>
       </div>
 
+      <div class="flex flex-wrap items-center gap-2 mb-6">
+        @if (order.paymentMethod) {
+          <span class="badge badge-primary">{{ paymentMethodLabel(order.paymentMethod) }}</span>
+        }
+        @if (order.paymentStatus) {
+          <span class="badge {{ paymentBadgeClass(order.paymentStatus) }}">{{ paymentStatusLabel(order.paymentStatus) }}</span>
+        }
+        @if (order.deliveryAddress) {
+          <span class="text-sm text-[#737373]">
+            <span class="font-semibold text-[#171717]">Dirección de entrega:</span> {{ order.deliveryAddress }}
+          </span>
+        }
+      </div>
+
       @if (order.status !== 'cancelled') {
         <div class="mb-8 p-6 rounded-xl bg-primary-50">
           <div class="flex items-center justify-between">

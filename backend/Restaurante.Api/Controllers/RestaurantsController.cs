@@ -62,7 +62,7 @@ public class RestaurantsController : ControllerBase
         }
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetById(Guid id)
     {

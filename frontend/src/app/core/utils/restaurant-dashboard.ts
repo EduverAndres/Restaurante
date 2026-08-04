@@ -140,6 +140,16 @@ export function paymentStatusLabel(status: string | null | undefined): string {
   return PAYMENT_LABELS[(status ?? '').toLowerCase()] ?? '—';
 }
 
+/** Human-readable Spanish label for the backend PaymentMethod ("CASH"/"CARD"). */
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CASH: 'Efectivo',
+  CARD: 'Tarjeta',
+};
+
+export function paymentMethodLabel(method: string | null | undefined): string {
+  return PAYMENT_METHOD_LABELS[(method ?? '').toUpperCase()] ?? '—';
+}
+
 export function paymentBadgeClass(status: string | null | undefined): string {
   switch ((status ?? '').toLowerCase()) {
     case 'paid':

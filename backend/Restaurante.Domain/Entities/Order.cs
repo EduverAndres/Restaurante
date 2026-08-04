@@ -16,6 +16,7 @@ public class Order : BaseEntity
     public Guid? CouponId { get; set; }
     public Coupon? Coupon { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
+    public string? PaymentMethod { get; set; }
     public Guid? AiConversationId { get; set; }
     public AIConversation? AiConversation { get; set; }
     public string? Notes { get; set; }

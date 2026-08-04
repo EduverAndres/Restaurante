@@ -84,6 +84,7 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
         if (payment.Status == PaymentStatus.Paid)
         {
             order.PaymentStatus = PaymentStatus.Paid;
+            order.PaymentMethod = request.Method;
             order.UpdatedAt = DateTime.UtcNow;
             await _orderRepository.UpdateAsync(order);
 

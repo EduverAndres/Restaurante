@@ -77,7 +77,10 @@ public class OrdersController : ControllerBase
                 CustomerId = customerId,
                 RestaurantId = dto.RestaurantId,
                 Items = dto.Items,
-                Notes = dto.Notes
+                Notes = dto.Notes,
+                DeliveryAddress = dto.DeliveryAddress,
+                Latitude = dto.Latitude,
+                Longitude = dto.Longitude
             };
             var result = await _mediator.Send(command);
             return Ok(result);

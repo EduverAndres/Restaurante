@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { OrderService, normalizeOrder, normalizeOrderStatus } from './order.service';
+import { OrderService, normalizeOrder, normalizeOrderStatus, normalizePaymentStatus } from './order.service';
 import { apiResponseInterceptor } from '../interceptors/api-response.interceptor';
 
 const apiOrder = {
@@ -153,6 +153,25 @@ describe('normalizeOrderStatus', () => {
   });
 });
 
+describe('normalizePaymentStatus', () => {
+  it('maps PascalCase backend statuses to lowercase', () => {
+    expect(normalizePaymentStatus('Pending')).toBe('pending');
+    expect(normalizePaymentStatus('Paid')).toBe('paid');
+    expect(normalizePaymentStatus('Failed')).toBe('failed');
+    expect(normalizePaymentStatus('Refunded')).toBe('refunded');
+  });
+
+  it('falls back to lowercase for unknown values', () => {
+    expect(normalizePaymentStatus('SomethingElse')).toBe('somethingelse');
+  });
+
+  it('is null-safe', () => {
+    expect(normalizePaymentStatus(null)).toBeUndefined();
+    expect(normalizePaymentStatus(undefined)).toBeUndefined();
+    expect(normalizePaymentStatus('')).toBeUndefined();
+  });
+});
+
 describe('normalizeOrder', () => {
   it('fills item name from menuItemName and customerNote from notes', () => {
     const order = normalizeOrder({
@@ -163,8 +182,14 @@ describe('normalizeOrder', () => {
     });
 
     expect(order.status).toBe('delivered');
+    expect(order.paymentStatus).toBe('paid');
     expect(order.customerNote).toBe('Por favor, llamar al llegar');
     expect(order.items[0].name).toBe('Tacos al Pastor');
+  });
+
+  it('keeps paymentStatus undefined when the backend sends none', () => {
+    const order = normalizeOrder({ ...apiOrder, status: 'Pending', paymentStatus: null });
+    expect(order.paymentStatus).toBeUndefined();
   });
 
   it('keeps name and customerNote when already present', () => {
